@@ -37,18 +37,18 @@ body {
     align-items: center;
     justify-content: center;
 
-    padding: 48px 6vw;
+    padding: 40px 6vw;
 }
 
 .hero {
-    width: min(1400px, 100%);
+    width: min(1280px, 100%);
 
     display: grid;
-    grid-template-columns: 1fr 520px;
+    grid-template-columns: minmax(0, 1fr) clamp(280px, calc((100svh - 280px) * 0.8), 540px);
 
     align-items: center;
 
-    gap: clamp(60px, 8vw, 150px);
+    gap: clamp(40px, 4vw, 80px);
 }
 
 
@@ -64,6 +64,18 @@ body {
     justify-content: center;
 }
 
+
+/* SVG has an intrinsic width of 1880px; constrain it in every layout. */
+.brand-logo {
+    display: block;
+    width: min(100%, 640px);
+    max-width: 100%;
+    height: auto;
+}
+
+.hero > * {
+    min-width: 0;
+}
 
 /* =========================
    CARD
@@ -99,9 +111,11 @@ body {
 
     width: 100%;
 
-    aspect-ratio: 4 / 5;
+    height: auto;
 
-    object-fit: cover;
+    aspect-ratio: auto;
+
+    object-fit: contain;
     object-position: center;
 
     user-select: none;
@@ -268,9 +282,11 @@ body {
     .profile-photo {
         width: 100%;
 
-        aspect-ratio: 4 / 5;
+        height: auto;
 
-        object-fit: cover;
+    aspect-ratio: auto;
+
+        object-fit: contain;
         object-position: center;
 
         display: block;
