@@ -65,22 +65,15 @@ body {
 .brand {
     margin: 0;
 
-    font-family: "Bodoni Moda", "Bodoni MT", Didot, serif;
+    font-family: "Abril Fatface", serif;
+    font-size: clamp(110px, 13vw, 215px);
+    font-weight: 400;
 
-    font-size: clamp(110px, 13vw, 220px);
-    font-weight: 900;
-
-    font-optical-sizing: auto;
-
-    line-height: 0.8;
-
-    letter-spacing: -0.075em;
+    line-height: 0.82;
+    letter-spacing: -0.045em;
 
     color: #050505;
-
-    transform: translateY(-0.02em);
 }
-
 
 /* =========================
    CARD
@@ -239,129 +232,100 @@ body {
 @media (max-width: 800px) {
 
     .page-shell {
+        min-height: 100vh;
+
         align-items: flex-start;
 
-        padding:
-            50px
-            20px
-            55px;
+        padding: 38px 22px 48px;
     }
 
     .hero {
-        width: min(580px, 100%);
+        width: 100%;
 
         display: flex;
         flex-direction: column;
 
-        gap: 28px;
+        align-items: center;
+
+        gap: 24px;
     }
 
     .brand-wrap {
         width: 100%;
+
+        display: flex;
+        justify-content: center;
     }
 
     .brand {
-        font-size: clamp(92px, 25vw, 155px);
+        font-size: clamp(92px, 24vw, 128px);
 
         line-height: 0.82;
 
-        letter-spacing: -0.075em;
+        letter-spacing: -0.045em;
 
-        text-align: center;
+        white-space: nowrap;
     }
 
     .profile-card {
-        padding: 20px;
+        width: min(100%, 390px);
+
+        padding: 14px;
 
         border-radius: 5px;
+    }
 
-        box-shadow:
-            0 16px 38px rgba(0, 0, 0, 0.09),
-            0 3px 8px rgba(0, 0, 0, 0.04);
+    .photo-frame {
+        width: 100%;
+    }
+
+    .profile-photo {
+        width: 100%;
+
+        aspect-ratio: 4 / 5;
+
+        object-fit: cover;
+        object-position: center;
+
+        display: block;
+    }
+
+    .social-list {
+        margin-top: 7px;
     }
 
     .social-link {
-        min-height: 76px;
+        min-height: 58px;
 
         grid-template-columns:
-            55px
+            42px
             1fr
-            36px;
+            30px;
 
-        gap: 14px;
+        gap: 12px;
 
-        padding:
-            8px
-            8px;
-    }
-
-    .social-name {
-        font-size: 24px;
-    }
-
-    .arrow {
-        font-size: 34px;
-    }
-
-}
-
-
-/* =========================
-   SMALL PHONES
-   ========================= */
-
-@media (max-width: 420px) {
-
-    .page-shell {
-        padding:
-            38px
-            15px
-            40px;
-    }
-
-    .hero {
-        gap: 22px;
-    }
-
-    .brand {
-        font-size: 25vw;
-    }
-
-    .profile-card {
-        padding: 15px;
-    }
-
-    .social-link {
-        min-height: 67px;
-
-        grid-template-columns:
-            47px
-            1fr
-            32px;
-
-        gap: 11px;
+        padding: 7px 5px;
     }
 
     .social-icon {
-        width: 40px;
-        height: 40px;
+        width: 36px;
+        height: 36px;
     }
 
     .youtube-icon svg {
-        width: 43px;
+        width: 38px;
     }
 
     .instagram-icon svg {
-        width: 39px;
-        height: 39px;
+        width: 35px;
+        height: 35px;
     }
 
     .social-name {
-        font-size: 21px;
+        font-size: 19px;
     }
 
     .arrow {
-        font-size: 30px;
+        font-size: 27px;
     }
-
 }
