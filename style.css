@@ -57,23 +57,13 @@ body {
    ========================= */
 
 .brand-wrap {
+    width: 100%;
+
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-.brand {
-    margin: 0;
-
-    font-family: "Abril Fatface", serif;
-    font-size: clamp(110px, 13vw, 215px);
-    font-weight: 400;
-
-    line-height: 0.82;
-    letter-spacing: -0.045em;
-
-    color: #050505;
-}
 
 /* =========================
    CARD
@@ -236,35 +226,27 @@ body {
 
         align-items: flex-start;
 
-        padding: 38px 22px 48px;
+        padding: 46px 20px 50px;
     }
 
     .hero {
-        width: 100%;
+        width: min(580px, 100%);
 
         display: flex;
         flex-direction: column;
 
         align-items: center;
 
-        gap: 24px;
+        gap: 26px;
     }
 
     .brand-wrap {
         width: 100%;
-
-        display: flex;
-        justify-content: center;
     }
 
-    .brand {
-        font-size: clamp(92px, 24vw, 128px);
-
-        line-height: 0.82;
-
-        letter-spacing: -0.045em;
-
-        white-space: nowrap;
+    .brand-logo {
+        width: min(92vw, 520px);
+        height: auto;
     }
 
     .profile-card {
@@ -273,6 +255,10 @@ body {
         padding: 14px;
 
         border-radius: 5px;
+
+        box-shadow:
+            0 16px 38px rgba(0, 0, 0, 0.09),
+            0 3px 8px rgba(0, 0, 0, 0.04);
     }
 
     .photo-frame {
