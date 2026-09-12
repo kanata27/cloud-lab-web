@@ -20,11 +20,12 @@ function getSource() {
   return "direct";
 }
 
-async function sendAnalyticsEvent(eventName) {
+async function sendAnalyticsEvent(eventName, extraData = {}) {
   const payload = {
     session_id: getSessionId(),
     event: eventName,
-    source: getSource()
+    source: getSource(),
+    ...extraData
   };
 
   try {
@@ -46,3 +47,11 @@ async function sendAnalyticsEvent(eventName) {
 }
 
 sendAnalyticsEvent("page_view");
+
+document.querySelectorAll("[data-platform]").forEach((link) => {
+  link.addEventListener("click", () => {
+    sendAnalyticsEvent("social_click", {
+      platform: link.dataset.platform
+    });
+  });
+});
