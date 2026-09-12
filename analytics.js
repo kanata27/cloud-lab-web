@@ -13,7 +13,9 @@ function getSessionId() {
 }
 
 function getSource() {
-  if (window.location.pathname === "/q") {
+  const params = new URLSearchParams(window.location.search);
+
+  if (params.has("q")) {
     return "qr";
   }
 
