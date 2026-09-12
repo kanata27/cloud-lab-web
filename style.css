@@ -1,230 +1,367 @@
-:root {
-  color-scheme: light;
-  --paper: #f3f0ea;
-  --card: rgba(255, 255, 255, 0.84);
-  --ink: #060606;
-  --hairline: rgba(12, 12, 12, 0.13);
-  --shadow: 0 10px 30px rgba(25, 20, 14, 0.13);
-}
-
 * {
-  box-sizing: border-box;
+    box-sizing: border-box;
 }
 
 html,
 body {
-  min-height: 100%;
-  margin: 0;
+    margin: 0;
+    padding: 0;
 }
 
 body {
-  color: var(--ink);
-  background:
-    radial-gradient(circle at 16% 45%, rgba(255,255,255,0.75), transparent 34%),
-    radial-gradient(circle at 88% 12%, rgba(255,255,255,0.50), transparent 26%),
-    linear-gradient(135deg, #f4f1eb 0%, #ece8e1 100%);
-  font-family: Arial, Helvetica, sans-serif;
+    min-height: 100vh;
+
+    background:
+        radial-gradient(
+            circle at 50% 40%,
+            #faf8f4 0%,
+            #f5f2ec 55%,
+            #eeebe5 100%
+        );
+
+    color: #080808;
+
+    font-family: "Inter", Arial, sans-serif;
 }
 
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.22;
-  background-image:
-    repeating-linear-gradient(0deg, rgba(0,0,0,0.012) 0, rgba(0,0,0,0.012) 1px, transparent 1px, transparent 4px);
-}
+
+/* =========================
+   MAIN LAYOUT
+   ========================= */
 
 .page-shell {
-  min-height: 100vh;
-  width: 100%;
-  display: grid;
-  place-items: center;
-  padding: 48px clamp(28px, 7vw, 130px);
+    min-height: 100vh;
+    width: 100%;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 48px 6vw;
 }
 
 .hero {
-  width: min(100%, 1320px);
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(390px, 520px);
-  align-items: center;
-  gap: clamp(55px, 8vw, 130px);
+    width: min(1400px, 100%);
+
+    display: grid;
+    grid-template-columns: 1fr 520px;
+
+    align-items: center;
+
+    gap: clamp(60px, 8vw, 150px);
 }
 
+
+/* =========================
+   BRAND
+   ========================= */
+
 .brand-wrap {
-  min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .brand {
-  margin: 0;
-  font-family: Didot, "Bodoni MT", "Bodoni 72", "Times New Roman", serif;
-  font-weight: 700;
-  font-size: clamp(118px, 12vw, 220px);
-  line-height: 0.78;
-  letter-spacing: -0.075em;
-  transform: translateY(-0.02em);
-  white-space: nowrap;
+    margin: 0;
+
+    font-family: "Bodoni Moda", "Bodoni MT", Didot, serif;
+
+    font-size: clamp(110px, 13vw, 220px);
+    font-weight: 900;
+
+    font-optical-sizing: auto;
+
+    line-height: 0.8;
+
+    letter-spacing: -0.075em;
+
+    color: #050505;
+
+    transform: translateY(-0.02em);
 }
+
+
+/* =========================
+   CARD
+   ========================= */
 
 .profile-card {
-  width: 100%;
-  padding: 20px 20px 16px;
-  background: var(--card);
-  border: 1px solid rgba(255,255,255,0.72);
-  border-radius: 6px;
-  box-shadow: var(--shadow);
-  backdrop-filter: blur(6px);
+    width: 100%;
+
+    padding: 22px;
+
+    background: rgba(255, 255, 255, 0.94);
+
+    border-radius: 6px;
+
+    box-shadow:
+        0 18px 45px rgba(0, 0, 0, 0.08),
+        0 3px 10px rgba(0, 0, 0, 0.05);
 }
 
+
+/* =========================
+   IMAGE
+   ========================= */
+
 .photo-frame {
-  overflow: hidden;
-  width: 100%;
-  aspect-ratio: 0.79;
-  background: #d9d0c5;
+    width: 100%;
+
+    overflow: hidden;
 }
 
 .profile-photo {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+    display: block;
+
+    width: 100%;
+
+    aspect-ratio: 4 / 5;
+
+    object-fit: cover;
+    object-position: center;
+
+    user-select: none;
 }
 
+
+/* =========================
+   SOCIAL LINKS
+   ========================= */
+
 .social-list {
-  margin-top: 10px;
+    margin-top: 12px;
 }
 
 .social-link {
-  min-height: 66px;
-  display: grid;
-  grid-template-columns: 54px 1fr auto;
-  align-items: center;
-  gap: 14px;
-  padding: 8px 8px;
-  border-bottom: 1px solid var(--hairline);
-  color: var(--ink);
-  text-decoration: none;
-  transition: opacity 160ms ease, transform 160ms ease;
+    min-height: 72px;
+
+    display: grid;
+
+    grid-template-columns:
+        56px
+        1fr
+        40px;
+
+    align-items: center;
+
+    gap: 18px;
+
+    padding: 10px 10px;
+
+    color: #090909;
+
+    text-decoration: none;
+
+    border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+
+    transition:
+        opacity 150ms ease,
+        transform 150ms ease;
 }
 
 .social-link:last-child {
-  border-bottom: 0;
+    border-bottom: 0;
 }
 
 .social-link:hover {
-  opacity: 0.62;
+    opacity: 0.62;
 }
 
-.social-link:active {
-  transform: translateY(1px);
-}
-
-.social-icon {
-  width: 42px;
-  display: grid;
-  place-items: center;
-}
-
-.social-icon svg {
-  width: 42px;
-  height: auto;
-  color: currentColor;
-  fill: currentColor;
-}
-
-.instagram-icon svg {
-  width: 39px;
+.social-link:hover .arrow {
+    transform: translateX(4px);
 }
 
 .social-name {
-  font-size: 24px;
-  line-height: 1;
+    font-size: 24px;
+    font-weight: 400;
+
+    letter-spacing: -0.025em;
 }
+
+
+/* =========================
+   ICONS
+   ========================= */
+
+.social-icon {
+    width: 46px;
+    height: 46px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    color: #050505;
+}
+
+.social-icon svg {
+    display: block;
+
+    width: 100%;
+    height: 100%;
+}
+
+.youtube-icon svg {
+    width: 48px;
+    height: auto;
+
+    fill: currentColor;
+}
+
+.instagram-icon svg {
+    width: 44px;
+    height: 44px;
+}
+
+
+/* =========================
+   ARROW
+   ========================= */
 
 .arrow {
-  padding-right: 4px;
-  font-size: 38px;
-  font-weight: 300;
-  line-height: 1;
+    justify-self: end;
+
+    font-size: 38px;
+    font-family: Arial, sans-serif;
+    font-weight: 300;
+
+    line-height: 1;
+
+    transition: transform 150ms ease;
 }
 
-/* Tablet */
-@media (max-width: 980px) {
-  .page-shell {
-    padding: 44px 30px 54px;
-  }
 
-  .hero {
-    grid-template-columns: 1fr;
-    justify-items: center;
-    gap: 34px;
-  }
+/* =========================
+   MOBILE
+   ========================= */
 
-  .brand {
-    font-size: clamp(112px, 19vw, 180px);
-    text-align: center;
-  }
+@media (max-width: 800px) {
 
-  .profile-card {
-    width: min(92vw, 540px);
-  }
+    .page-shell {
+        align-items: flex-start;
+
+        padding:
+            50px
+            20px
+            55px;
+    }
+
+    .hero {
+        width: min(580px, 100%);
+
+        display: flex;
+        flex-direction: column;
+
+        gap: 28px;
+    }
+
+    .brand-wrap {
+        width: 100%;
+    }
+
+    .brand {
+        font-size: clamp(92px, 25vw, 155px);
+
+        line-height: 0.82;
+
+        letter-spacing: -0.075em;
+
+        text-align: center;
+    }
+
+    .profile-card {
+        padding: 20px;
+
+        border-radius: 5px;
+
+        box-shadow:
+            0 16px 38px rgba(0, 0, 0, 0.09),
+            0 3px 8px rgba(0, 0, 0, 0.04);
+    }
+
+    .social-link {
+        min-height: 76px;
+
+        grid-template-columns:
+            55px
+            1fr
+            36px;
+
+        gap: 14px;
+
+        padding:
+            8px
+            8px;
+    }
+
+    .social-name {
+        font-size: 24px;
+    }
+
+    .arrow {
+        font-size: 34px;
+    }
+
 }
 
-/* Mobile — matches the stacked reference */
-@media (max-width: 620px) {
-  .page-shell {
-    place-items: start center;
-    padding: 58px 22px 42px;
-  }
 
-  .hero {
-    gap: 28px;
-  }
+/* =========================
+   SMALL PHONES
+   ========================= */
 
-  .brand {
-    font-size: clamp(96px, 29vw, 154px);
-    line-height: 0.82;
-    letter-spacing: -0.085em;
-  }
+@media (max-width: 420px) {
 
-  .profile-card {
-    width: 100%;
-    max-width: 510px;
-    padding: 16px 16px 12px;
-    border-radius: 5px;
-  }
+    .page-shell {
+        padding:
+            38px
+            15px
+            40px;
+    }
 
-  .photo-frame {
-    aspect-ratio: 0.75;
-  }
+    .hero {
+        gap: 22px;
+    }
 
-  .social-link {
-    min-height: 70px;
-    grid-template-columns: 50px 1fr auto;
-    gap: 10px;
-    padding-inline: 4px;
-  }
+    .brand {
+        font-size: 25vw;
+    }
 
-  .social-name {
-    font-size: clamp(21px, 6vw, 28px);
-  }
+    .profile-card {
+        padding: 15px;
+    }
 
-  .arrow {
-    font-size: 36px;
-  }
-}
+    .social-link {
+        min-height: 67px;
 
-@media (max-width: 390px) {
-  .page-shell {
-    padding-inline: 14px;
-  }
+        grid-template-columns:
+            47px
+            1fr
+            32px;
 
-  .brand {
-    font-size: 28vw;
-  }
+        gap: 11px;
+    }
 
-  .profile-card {
-    padding: 12px 12px 10px;
-  }
+    .social-icon {
+        width: 40px;
+        height: 40px;
+    }
+
+    .youtube-icon svg {
+        width: 43px;
+    }
+
+    .instagram-icon svg {
+        width: 39px;
+        height: 39px;
+    }
+
+    .social-name {
+        font-size: 21px;
+    }
+
+    .arrow {
+        font-size: 30px;
+    }
+
 }

@@ -2,19 +2,43 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Kanata — guitar, music and social links.">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  >
+
+  <meta
+    name="description"
+    content="Kanata — guitar, music and social links."
+  >
+
   <title>Kanata</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400..900&family=Inter:wght@400;500;600&display=swap"
+    rel="stylesheet"
+  >
+
   <link rel="stylesheet" href="/style.css">
 </head>
+
 <body>
+
   <main class="page-shell">
-    <section class="hero" aria-labelledby="site-title">
+
+    <section class="hero">
+
       <div class="brand-wrap">
-        <h1 id="site-title" class="brand">kanata</h1>
+        <h1 class="brand">kanata</h1>
       </div>
 
-      <article class="profile-card" aria-label="Kanata social links">
+      <article class="profile-card">
+
         <div class="photo-frame">
           <img
             class="profile-photo"
@@ -23,32 +47,107 @@
           >
         </div>
 
-        <nav class="social-list" aria-label="Social links">
-          <a class="social-link" href="https://www.youtube.com/" target="_blank" rel="noreferrer">
-            <span class="social-icon" aria-hidden="true">
-              <svg viewBox="0 0 64 44" role="img">
-                <rect x="0" y="0" width="64" height="44" rx="12"></rect>
-                <path d="M27 13.5 43 22 27 30.5Z" fill="white"></path>
+        <nav class="social-list">
+
+          <a
+            class="social-link"
+            href="https://www.youtube.com/"
+            target="_blank"
+            rel="noreferrer"
+          >
+
+            <span class="social-icon youtube-icon">
+              <svg
+                viewBox="0 0 64 44"
+                aria-hidden="true"
+              >
+                <rect
+                  x="0"
+                  y="0"
+                  width="64"
+                  height="44"
+                  rx="12"
+                ></rect>
+
+                <path
+                  d="M27 13.5 43 22 27 30.5Z"
+                  fill="white"
+                ></path>
               </svg>
             </span>
-            <span class="social-name">YouTube</span>
-            <span class="arrow" aria-hidden="true">→</span>
+
+            <span class="social-name">
+              YouTube
+            </span>
+
+            <span class="arrow">
+              →
+            </span>
+
           </a>
 
-          <a class="social-link" href="https://www.instagram.com/" target="_blank" rel="noreferrer">
-            <span class="social-icon instagram-icon" aria-hidden="true">
-              <svg viewBox="0 0 48 48" role="img">
-                <rect x="5" y="5" width="38" height="38" rx="11" fill="none" stroke="currentColor" stroke-width="5"></rect>
-                <circle cx="24" cy="24" r="9" fill="none" stroke="currentColor" stroke-width="5"></circle>
-                <circle cx="35.5" cy="12.5" r="2.8"></circle>
+
+          <a
+            class="social-link"
+            href="https://www.instagram.com/"
+            target="_blank"
+            rel="noreferrer"
+          >
+
+            <span class="social-icon instagram-icon">
+
+              <svg
+                viewBox="0 0 48 48"
+                aria-hidden="true"
+              >
+
+                <rect
+                  x="5"
+                  y="5"
+                  width="38"
+                  height="38"
+                  rx="11"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="5"
+                ></rect>
+
+                <circle
+                  cx="24"
+                  cy="24"
+                  r="9"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="5"
+                ></circle>
+
+                <circle
+                  cx="35.5"
+                  cy="12.5"
+                  r="2.8"
+                ></circle>
+
               </svg>
+
             </span>
-            <span class="social-name">Instagram</span>
-            <span class="arrow" aria-hidden="true">→</span>
+
+            <span class="social-name">
+              Instagram
+            </span>
+
+            <span class="arrow">
+              →
+            </span>
+
           </a>
+
         </nav>
+
       </article>
+
     </section>
+
   </main>
+
 </body>
 </html>
