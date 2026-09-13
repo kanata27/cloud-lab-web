@@ -1,54 +1,100 @@
-name: Build and Deploy
+name: Cloudflare site
 
 on:
-  push:
-    branches:
-      - main
-      - feature/*
-  workflow_dispatch:
+  pull_request:
+    branches: [main]
 
+  push:
+    branches: [main]
+
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Where to deploy (production connects the real domain)"
+        type: choice
+        options: [preview, production]
+        default: preview
+        required: true
 
 permissions:
   contents: read
-  id-token: write
-
-env:
-  AWS_REGION: eu-north-1
-  ECR_REPOSITORY: cloud-lab-web
-  AWS_ACCOUNT_ID: "796303380157"
-  ASG_NAME: cloud-lab-asg
 
 jobs:
-  build-and-deploy:
+  check:
     runs-on: ubuntu-latest
-
+    timeout-minutes: 12
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
-          role-to-assume: arn:aws:iam::796303380157:role/github-actions-cloud-lab-role
-          aws-region: ${{ env.AWS_REGION }}
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:browser
 
-      - name: Login to Amazon ECR
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Build Docker image
+  deploy:
+    needs: check
+    if: >-
+      (github.event_name == 'workflow_dispatch' && inputs.target == 'preview') ||
+      (github.ref == 'refs/heads/main' &&
+       (github.event_name == 'workflow_dispatch' ||
+        (github.event_name == 'push' && vars.CLOUDFLARE_PRODUCTION_ENABLED == 'true')))
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: ${{ inputs.target || 'production' }}
+    concurrency:
+      group: cloudflare-${{ inputs.target || 'production' }}
+      cancel-in-progress: false
+    env:
+      TARGET: ${{ inputs.target || 'production' }}
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Reject an outdated production revision
+        if: env.TARGET == 'production'
+        shell: bash
         run: |
-          docker build \
-            -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:latest \
-            -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:${GITHUB_SHA} \
-            .
-
-      - name: Push Docker image
+          latest_main=$(git ls-remote origin refs/heads/main | cut -f1)
+          test "$latest_main" = "$GITHUB_SHA" || { echo 'main changed during checks. Run the workflow on the latest main.'; exit 1; }
+      - name: Validate deployment settings
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
         run: |
-          docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:latest
-          docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:${GITHUB_SHA}
-
-      - name: Start Auto Scaling instance refresh
-        run: |
-          aws autoscaling start-instance-refresh \
-            --auto-scaling-group-name "$ASG_NAME" \
-            --region "$AWS_REGION"
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo 'Missing CLOUDFLARE_API_TOKEN'; exit 1; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo 'Missing CLOUDFLARE_ACCOUNT_ID'; exit 1; }
+          case "$TARGET" in preview|production) ;; *) exit 1 ;; esac
+      - name: Inspect DNS and save rollback settings
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: node tools/dns-preflight.mjs "$TARGET"
+      - name: Keep DNS rollback snapshot
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: dns-before-${{ env.TARGET }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/dns-before-*.json
+          retention-days: 30
+          if-no-files-found: error
+      - name: Deploy static assets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        # In CI Wrangler updates the listed custom-domain DNS records itself.
+        # Production is an explicit dispatch until the repository flag is set.
+        run: npm run "deploy:$TARGET"
+      - name: Check deployed public routes
+        run: node tools/smoke.mjs "$TARGET"

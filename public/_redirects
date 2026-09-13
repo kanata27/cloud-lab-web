@@ -1,0 +1,5 @@
+# Preserve old bookmarks. QR parameters on the home page are untouched.
+/statpanel /stat-panel/ 302
+/statpanel/ /stat-panel/ 302
+/statistics-panel /stat-panel/ 302
+/statistics-panel/* /stat-panel/:splat 302

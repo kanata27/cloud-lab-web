@@ -1,0 +1,4 @@
+User-agent: *
+Disallow: /stat-panel
+Disallow: /statpanel
+Disallow: /statistics-panel
