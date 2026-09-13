@@ -5,4 +5,6 @@ COPY style.css /usr/share/nginx/html/style.css
 COPY analytics.js /usr/share/nginx/html/
 COPY assets /usr/share/nginx/html/assets
 
+COPY statistics-panel /usr/share/nginx/html/stat-panel
+
 EXPOSE 80

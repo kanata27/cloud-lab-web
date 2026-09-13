@@ -22,7 +22,15 @@ function getSource() {
   return "direct";
 }
 
+let pageViewSent = false;
+
 async function sendAnalyticsEvent(eventName, extraData = {}) {
+  // Защита от двойной отправки page_view
+  if (eventName === "page_view") {
+    if (pageViewSent) return;
+    pageViewSent = true;
+  }
+
   const payload = {
     session_id: getSessionId(),
     event: eventName,
@@ -48,10 +56,32 @@ async function sendAnalyticsEvent(eventName, extraData = {}) {
   }
 }
 
-sendAnalyticsEvent("page_view");
+function trackPageView() {
+  // Отправляем просмотр, только если вкладка реально видна пользователю
+  if (document.visibilityState === "visible") {
+    sendAnalyticsEvent("page_view");
+  }
+}
+
+// 1. Ждем 1.5 секунды, чтобы отсеять глупых ботов-парсеров
+setTimeout(() => {
+  trackPageView();
+  
+  // 2. Если через 1.5 секунды вкладка была скрыта (например, открыта в фоне),
+  // ждем, когда пользователь реально на нее переключится.
+  if (!pageViewSent) {
+    document.addEventListener("visibilitychange", trackPageView);
+  }
+}, 1500);
 
 document.querySelectorAll("[data-platform]").forEach((link) => {
   link.addEventListener("click", () => {
+    // 3. Если человек кликнул быстрее, чем прошли 1.5 секунды,
+    // принудительно отправляем page_view перед отправкой клика.
+    if (!pageViewSent) {
+      sendAnalyticsEvent("page_view");
+    }
+
     sendAnalyticsEvent("social_click", {
       platform: link.dataset.platform
     });

@@ -1,0 +1,737 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, viewport-fit=cover"
+  >
+
+  <meta
+    name="robots"
+    content="noindex, nofollow, noarchive"
+  >
+
+  <meta
+    name="referrer"
+    content="no-referrer"
+  >
+
+  <meta
+    name="color-scheme"
+    content="light dark"
+  >
+
+  <title>kanata · вход в панель</title>
+
+  <style>
+    :root {
+      color-scheme: light dark;
+
+      --bg: #eeece7;
+      --surface: #faf9f6;
+      --ink: #242724;
+      --muted: #676a65;
+      --line: #d9dbd3;
+      --accent: #557665;
+      --accent-soft: #e7ede8;
+      --error: #8d332a;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font:
+        15px/1.5
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    a {
+      color: inherit;
+    }
+
+    button,
+    input,
+    a {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    :focus-visible {
+      outline: 3px solid var(--accent);
+      outline-offset: 4px;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    h1,
+    p {
+      margin: 0;
+    }
+
+    .login-shell {
+      width: min(1160px, 100%);
+      min-height: 100svh;
+      padding: 34px 32px 24px;
+      margin: auto;
+
+      display: flex;
+      flex-direction: column;
+    }
+
+    .masthead {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+
+      padding-bottom: 27px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .wordmark {
+      display: block;
+      line-height: 0;
+    }
+
+    .wordmark img {
+      width: 148px;
+      height: auto;
+      max-width: 100%;
+    }
+
+    .private-label {
+      color: var(--muted);
+      font-size: 13px;
+      letter-spacing: .03em;
+    }
+
+    .login-main {
+      flex: 1;
+      display: grid;
+      place-items: center;
+      padding: 52px 0;
+    }
+
+    .login-card {
+      width: min(440px, 100%);
+      padding: 36px;
+
+      border: 1px solid var(--line);
+      border-radius: 16px;
+
+      background: var(--surface);
+
+      box-shadow:
+        0 8px 36px #23292008;
+    }
+
+    .lock-mark {
+      width: 44px;
+      height: 44px;
+
+      border-radius: 12px;
+
+      display: grid;
+      place-items: center;
+
+      color: var(--accent);
+      background: var(--accent-soft);
+
+      margin-bottom: 25px;
+    }
+
+    .eyebrow {
+      font-size: 11px;
+      color: var(--muted);
+
+      text-transform: uppercase;
+      letter-spacing: .17em;
+
+      margin-bottom: 9px;
+    }
+
+    h1 {
+      font-size: 34px;
+      font-weight: 500;
+      line-height: 1.15;
+      letter-spacing: -.04em;
+
+      margin-bottom: 30px;
+    }
+
+    .login-form {
+      display: grid;
+      gap: 19px;
+    }
+
+    .field {
+      display: grid;
+      gap: 7px;
+    }
+
+    .field-label {
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    input {
+      width: 100%;
+      min-width: 0;
+      min-height: 50px;
+
+      padding: 12px 14px;
+
+      border: 1px solid var(--line);
+      border-radius: 9px;
+
+      background: var(--surface);
+      color: var(--ink);
+
+      font-size: 16px;
+    }
+
+    input::placeholder {
+      color: var(--muted);
+      opacity: .8;
+    }
+
+    .password-wrap {
+      position: relative;
+    }
+
+    .password-wrap input {
+      padding-right: 102px;
+    }
+
+    .show-password {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      position: absolute;
+      top: 3px;
+      bottom: 3px;
+      right: 4px;
+
+      min-width: 90px;
+
+      padding: 6px 9px;
+
+      background: transparent;
+      color: var(--muted);
+
+      border: 0;
+      border-radius: 6px;
+
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .submit-button {
+      min-height: 50px;
+
+      padding: 12px 18px;
+      margin-top: 5px;
+
+      border: 0;
+      border-radius: 9px;
+
+      background: var(--ink);
+      color: var(--surface);
+
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .submit-button:disabled {
+      opacity: .5;
+      cursor: default;
+    }
+
+    .submit-button:hover:not(:disabled) {
+      filter: brightness(.9);
+    }
+
+    .login-status {
+      padding: 12px;
+
+      border-radius: 8px;
+
+      background: var(--accent-soft);
+
+      font-size: 13px;
+    }
+
+    .login-status[data-error="true"] {
+      color: var(--error);
+      background: var(--surface);
+      border: 1px solid var(--error);
+    }
+
+    .login-footer {
+      text-align: center;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1d201f;
+        --surface: #252927;
+        --ink: #eceee7;
+        --muted: #adb4ad;
+        --line: #404742;
+        --accent: #99bba5;
+        --accent-soft: #2a3b32;
+        --error: #ffa59b;
+      }
+
+      .wordmark img {
+        filter: invert(1);
+      }
+
+      .login-card {
+        box-shadow: none;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .login-shell {
+        padding:
+          24px
+          max(18px, env(safe-area-inset-right))
+          max(22px, env(safe-area-inset-bottom))
+          max(18px, env(safe-area-inset-left));
+      }
+
+      .masthead {
+        gap: 18px;
+        padding-bottom: 22px;
+      }
+
+      .wordmark img {
+        width: 118px;
+      }
+
+      .private-label {
+        font-size: 12px;
+      }
+
+      .login-main {
+        padding: 30px 0;
+      }
+
+      .login-card {
+        padding: 28px 24px;
+        border-radius: 14px;
+      }
+
+      h1 {
+        font-size: 30px;
+      }
+
+      .lock-mark {
+        margin-bottom: 22px;
+      }
+    }
+
+    @media (max-width: 380px) {
+      .login-shell {
+        padding-left:
+          max(14px, env(safe-area-inset-left));
+
+        padding-right:
+          max(14px, env(safe-area-inset-right));
+      }
+
+      .login-card {
+        padding: 24px 20px;
+      }
+
+      .masthead {
+        gap: 14px;
+      }
+
+      h1 {
+        font-size: 29px;
+      }
+    }
+
+    @media (max-height: 650px) {
+      .login-main {
+        padding-top: 24px;
+        padding-bottom: 24px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="login-shell">
+
+    <header class="masthead">
+
+      <a
+        class="wordmark"
+        href="/"
+        aria-label="kanata — на сайт"
+      >
+        <img
+          src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxODgwIiBoZWlnaHQ9IjQ5NiIgdmlld0JveD0iMCAwIDQ3MCAxMjQiIHJvbGU9ImltZyIgYXJpYS1sYWJlbGxlZGJ5PSJ0aXRsZSI+CiAgPHRpdGxlIGlkPSJ0aXRsZSI+a2FuYXRhPC90aXRsZT4KICA8ZGVzYz5DdXN0b20gb3V0bGluZWQgd29yZG1hcmsuIFNtb290aCBjdWJpYyBCZXppZXIgY3VydmVzLCB0cmFuc3BhcmVudCBiYWNrZ3JvdW5kLCBubyBmb250cyBvciBlbWJlZGRlZCByYXN0ZXIgaW1hZ2VzLjwvZGVzYz4KICA8ZyBmaWxsPSIjMDgwODA4Ij4KICAgIDxwYXRoIGQ9Ik00MCAyIEw0MCA3NgogICAgICBMNjAgNTcgQzY0IDUzIDY2IDUxIDY1IDQ4IEM2NCA0NCA2MSA0MyA1NyA0MyBMNTcgNDEgTDk0IDQxIEw5NCA0MwogICAgICBDODMgNDQgNzYgNDkgNjIgNjIgTDkxIDEwOCBDOTQgMTEzIDk4IDExNyAxMDIgMTE3IEwxMDIgMTE5IEw1NiAxMTkgTDU2IDExNwogICAgICBDNjEgMTE3IDYzIDExNSA1OSAxMDkgTDQxIDgwIEw0MCA4MSBMNDAgMTA4IEM0MCAxMTMgNDQgMTE3IDQ4IDExNyBMNDggMTE5CiAgICAgIEwyIDExOSBMMiAxMTcgQzkgMTE2IDEyIDExMiAxMiAxMDcgTDEyIDIwIEMxMiAxMyA5IDEwIDIgOSBMMiA3IFoiLz4KICAgIDxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgZD0iTTEyNiAzOQogICAgICBDMTEyIDM5IDEwNCA0NiAxMDQgNTYgQzEwNCA2NCAxMDkgNjkgMTE2IDY5IEMxMjQgNjkgMTI5IDY0IDEyOSA1NwogICAgICBDMTI5IDUyIDEyNyA0OSAxMjUgNDcgQzEyNSA0NCAxMjggNDIgMTMxIDQyIEMxMzggNDIgMTQyIDQ5IDE0MiA1NiBMMTQyIDY0CiAgICAgIEMxNDIgNzEgMTM1IDczIDEyNCA3OCBDMTEwIDg0IDEwMCA5MSAxMDAgMTAzIEMxMDAgMTE0IDEwNyAxMjEgMTIwIDEyMQogICAgICBDMTMwIDEyMSAxMzcgMTE2IDE0MiAxMTEgQzE0NSAxMTggMTUwIDEyMSAxNTggMTIxIEMxNjcgMTIxIDE3MyAxMTYgMTgwIDEwOQogICAgICBMMTc4IDEwNyBDMTc1IDExMCAxNzMgMTExIDE3MSAxMTEgQzE2OSAxMTEgMTY5IDEwOCAxNjkgMTA1IEwxNjkgNTkKICAgICAgQzE2OSA0NiAxNTggMzkgMTQzIDM5IFoKICAgICAgTTE0MiA3MyBDMTM3IDc3IDEyNyA4NyAxMjcgOTYgQzEyNyAxMDQgMTMxIDEwOCAxMzYgMTA4IEMxMzggMTA4IDE0MCAxMDcgMTQyIDEwNSBaIi8+CiAgICA8cGF0aCBkPSJNMjEzIDM5IEwyMTMgNTIgQzIyMiA0MyAyMjUgMzkgMjM2IDM5CiAgICAgIEMyNTQgMzkgMjYxIDQ2IDI2MSA2MSBMMjYxIDEwNyBDMjYxIDExMyAyNjQgMTE2IDI2OCAxMTcgTDI2OCAxMTkgTDIyNiAxMTkgTDIyNiAxMTcKICAgICAgQzIzMSAxMTYgMjMzIDExMyAyMzMgMTA3IEwyMzMgNjEgQzIzMyA1NCAyMzAgNTEgMjI1IDUxIEMyMjAgNTEgMjE4IDUzIDIxMyA1NwogICAgICBMMjEzIDEwOCBDMjEzIDExMyAyMTUgMTE2IDIxOSAxMTcgTDIxOSAxMTkgTDE3NiAxMTkgTDE3NiAxMTcKICAgICAgQzE4MiAxMTUgMTg1IDExMSAxODUgMTA2IEwxODUgNTYgQzE4NSA0OSAxODEgNDcgMTc1IDQ2IEwxNzUgNDQgWiIvPgogICAgPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxNjUgMCkiIGQ9Ik0xMjYgMzkKICAgICAgQzExMiAzOSAxMDQgNDYgMTA0IDU2IEMxMDQgNjQgMTA5IDY5IDExNiA2OSBDMTI0IDY5IDEyOSA2NCAxMjkgNTcKICAgICAgQzEyOSA1MiAxMjcgNDkgMTI1IDQ3IEMxMjUgNDQgMTI4IDQyIDEzMSA0MiBDMTM4IDQyIDE0MiA0OSAxNDIgNTYgTDE0MiA2NAogICAgICBDMTQyIDcxIDEzNSA3MyAxMjQgNzggQzExMCA4NCAxMDAgOTEgMTAwIDEwMyBDMTAwIDExNCAxMDcgMTIxIDEyMCAxMjEKICAgICAgQzEzMCAxMjEgMTM3IDExNiAxNDIgMTExIEMxNDUgMTE4IDE1MCAxMjEgMTU4IDEyMSBDMTY3IDEyMSAxNzMgMTE2IDE4MCAxMDkKICAgICAgTDE3OCAxMDcgQzE3NSAxMTAgMTczIDExMSAxNzEgMTExIEMxNjkgMTExIDE2OSAxMDggMTY5IDEwNSBMMTY5IDU5CiAgICAgIEMxNjkgNDYgMTU4IDM5IDE0MyAzOSBaCiAgICAgIE0xNDIgNzMgQzEzNyA3NyAxMjcgODcgMTI3IDk2IEMxMjcgMTA0IDEzMSAxMDggMTM2IDEwOCBDMTM4IDEwOCAxNDAgMTA3IDE0MiAxMDUgWiIvPgogICAgPHBhdGggZD0iTTM3NCA3IEwzNzQgNDEgTDM4OSA0MSBMMzg5IDQ1IEwzNzQgNDUgTDM3NCAxMDIKICAgICAgQzM3NCAxMDggMzc3IDExMSAzODEgMTExIEMzODMgMTExIDM4NiAxMTAgMzg5IDEwNyBMMzkxIDExMAogICAgICBDMzgzIDExOCAzNzcgMTIxIDM2NyAxMjEgQzM1NCAxMjEgMzQ3IDExNiAzNDcgMTA2IEwzNDcgNDUgTDMzNiA0NSBMMzM2IDQzCiAgICAgIEMzNTMgMzYgMzY0IDI0IDM3MiA3IFoiLz4KICAgIDxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMjg3IDApIiBkPSJNMTI2IDM5CiAgICAgIEMxMTIgMzkgMTA0IDQ2IDEwNCA1NiBDMTA0IDY0IDEwOSA2OSAxMTYgNjkgQzEyNCA2OSAxMjkgNjQgMTI5IDU3CiAgICAgIEMxMjkgNTIgMTI3IDQ5IDEyNSA0NyBDMTI1IDQ0IDEyOCA0MiAxMzEgNDIgQzEzOCA0MiAxNDIgNDkgMTQyIDU2IEwxNDIgNjQKICAgICAgQzE0MiA3MSAxMzUgNzMgMTI0IDc4IEMxMTAgODQgMTAwIDkxIDEwMCAxMDMgQzEwMCAxMTQgMTA3IDEyMSAxMjAgMTIxCiAgICAgIEMxMzAgMTIxIDEzNyAxMTYgMTQyIDExMSBDMTQ1IDExOCAxNTAgMTIxIDE1OCAxMjEgQzE2NyAxMjEgMTczIDExNiAxODAgMTA5CiAgICAgIEwxNzggMTA3IEMxNzUgMTEwIDE3MyAxMTEgMTcxIDExMSBDMTY5IDExMSAxNjkgMTA4IDE2OSAxMDUgTDE2OSA1OQogICAgICBDMTY5IDQ2IDE1OCAzOSAxNDMgMzkgWgogICAgICBNMTQyIDczIEMxMzcgNzcgMTI3IDg3IDEyNyA5NiBDMTI3IDEwNCAxMzEgMTA4IDEzNiAxMDggQzEzOCAxMDggMTQwIDEwNyAxNDIgMTA1IFoiLz4KICA8L2c+Cjwvc3ZnPgo="
+          alt="kanata"
+          width="188"
+          height="50"
+        >
+      </a>
+
+      <span class="private-label">
+        Панель статистики
+      </span>
+
+    </header>
+
+
+    <main class="login-main">
+
+      <section
+        class="login-card"
+        aria-labelledby="login-title"
+      >
+
+        <div
+          class="lock-mark"
+          aria-hidden="true"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            width="22"
+            height="22"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+          >
+            <rect
+              x="5"
+              y="10"
+              width="14"
+              height="11"
+              rx="3"
+            />
+
+            <path
+              d="M8 10V7a4 4 0 018 0v3M12 14v3"
+            />
+          </svg>
+        </div>
+
+
+        <p class="eyebrow">
+          kanata / statpanel
+        </p>
+
+        <h1 id="login-title">
+          Вход в панель
+        </h1>
+
+
+        <form
+          id="login-form"
+          class="login-form"
+          method="post"
+        >
+
+          <label class="field">
+
+            <span class="field-label">
+              Логин
+            </span>
+
+            <input
+              id="username"
+              type="text"
+              autocomplete="username"
+              autocapitalize="none"
+              spellcheck="false"
+              placeholder="Имя пользователя"
+              maxlength="128"
+              required
+            >
+
+          </label>
+
+
+          <div class="field">
+
+            <label
+              class="field-label"
+              for="password"
+            >
+              Пароль
+            </label>
+
+            <div class="password-wrap">
+
+              <input
+                id="password"
+                type="password"
+                autocomplete="current-password"
+                placeholder="Введи пароль"
+                maxlength="256"
+                required
+              >
+
+              <button
+                id="show-password"
+                class="show-password"
+                type="button"
+                aria-controls="password"
+                aria-pressed="false"
+              >
+                Показать
+              </button>
+
+            </div>
+
+          </div>
+
+
+          <button
+            id="submit-login"
+            class="submit-button"
+            type="submit"
+            disabled
+          >
+            Войти
+          </button>
+
+
+          <p
+            id="login-status"
+            class="login-status"
+            role="status"
+            hidden
+          ></p>
+
+        </form>
+
+      </section>
+
+    </main>
+
+  </div>
+
+
+  <script>
+    "use strict";
+
+    const API_BASE =
+      "https://dupt8l46y1.execute-api.eu-north-1.amazonaws.com";
+
+
+    const usernameInput =
+      document.getElementById("username");
+
+    const passwordInput =
+      document.getElementById("password");
+
+    const submitButton =
+      document.getElementById("submit-login");
+
+    const statusElement =
+      document.getElementById("login-status");
+
+    const toggleButton =
+      document.getElementById("show-password");
+
+
+    function updateSubmitState() {
+      submitButton.disabled =
+        !usernameInput.value.trim()
+        || !passwordInput.value;
+    }
+
+
+    function showError(message) {
+      statusElement.textContent = message;
+      statusElement.dataset.error = "true";
+      statusElement.hidden = false;
+    }
+
+
+    function clearStatus() {
+      statusElement.textContent = "";
+      statusElement.hidden = true;
+      statusElement.dataset.error = "false";
+    }
+
+
+    usernameInput.addEventListener(
+      "input",
+      updateSubmitState
+    );
+
+
+    passwordInput.addEventListener(
+      "input",
+      updateSubmitState
+    );
+
+
+    toggleButton.addEventListener(
+      "click",
+      () => {
+
+        const visible =
+          passwordInput.type === "password";
+
+        passwordInput.type =
+          visible
+            ? "text"
+            : "password";
+
+        toggleButton.textContent =
+          visible
+            ? "Скрыть"
+            : "Показать";
+
+        toggleButton.setAttribute(
+          "aria-pressed",
+          String(visible)
+        );
+
+        passwordInput.focus();
+      }
+    );
+
+
+    document
+      .getElementById("login-form")
+      .addEventListener(
+        "submit",
+        async event => {
+
+          event.preventDefault();
+
+          if (
+            !usernameInput.value.trim()
+            || !passwordInput.value
+          ) {
+            updateSubmitState();
+            return;
+          }
+
+          clearStatus();
+
+          submitButton.disabled = true;
+          submitButton.textContent = "Входим…";
+
+
+          try {
+
+            const response = await fetch(
+              `${API_BASE}/login`,
+              {
+                method: "POST",
+
+                headers: {
+                  "Content-Type":
+                    "application/json"
+                },
+
+                body: JSON.stringify({
+                  username:
+                    usernameInput.value.trim(),
+
+                  password:
+                    passwordInput.value
+                })
+              }
+            );
+
+
+            if (response.status === 401) {
+              throw new Error(
+                "Неверный логин или пароль."
+              );
+            }
+
+
+            if (!response.ok) {
+              throw new Error(
+                "Ошибка сервера. Попробуй ещё раз."
+              );
+            }
+
+
+            const data =
+              await response.json();
+
+
+            if (!data.token) {
+              throw new Error(
+                "Сервер не вернул токен сессии."
+              );
+            }
+
+
+            sessionStorage.setItem(
+              "kanata_admin_token",
+              data.token
+            );
+
+
+            passwordInput.value = "";
+
+
+            window.location.replace(
+              "./index.html"
+            );
+
+          } catch (error) {
+
+            showError(
+              error.message
+              || "Не удалось войти."
+            );
+
+          } finally {
+
+            submitButton.textContent =
+              "Войти";
+
+            updateSubmitState();
+          }
+        }
+      );
+
+
+    updateSubmitState();
+
+
+    window.addEventListener(
+      "pagehide",
+      () => {
+        passwordInput.value = "";
+      }
+    );
+  </script>
+
+</body>
+</html>
