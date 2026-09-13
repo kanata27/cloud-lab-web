@@ -775,8 +775,8 @@ th:first-child,td:first-child {
         </section>
 
         <div class="split-panels">
-          <section class="panel" aria-labelledby="platform-title"><h2 id="platform-title">Куда переходят</h2><div id="platform-bars" class="bar-list"></div><p class="muted panel-note">Доля среди сессий с переходами. Каждая сессия — в одной группе.</p></section>
-          <section class="panel" aria-labelledby="source-title"><h2 id="source-title">Откуда приходят</h2><div id="source-bars" class="bar-list"></div><p class="muted panel-note">Просмотры с QR-меткой и без неё.</p></section>
+          <section class="panel" aria-labelledby="platform-title"><h2 id="platform-title">Куда переходят</h2><div id="platform-bars" class="bar-list"></div></section>
+          <section class="panel" aria-labelledby="source-title"><h2 id="source-title">Откуда приходят</h2><div id="source-bars" class="bar-list"></div></section>
         </div>
 
         <details class="daily-details"><summary>Числа по дням</summary><div class="table-wrap" tabindex="0" role="region" aria-label="Таблица статистики по дням, можно прокручивать горизонтально"><table><caption class="sr-only">Ежедневная статистика за выбранный период</caption><thead><tr><th scope="col">Дата</th><th scope="col">Просмотры</th><th scope="col">Сессии</th><th scope="col">YouTube</th><th scope="col">Instagram</th></tr></thead><tbody id="daily-body"></tbody></table></div></details>
@@ -1116,7 +1116,7 @@ class Dashboard {
       day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: this.timeZone,
     }).format(new Date(this.data.generated_at));
     this.renderBars("platform-bars", [["Только Instagram", this.data.destinations.instagram_only], ["Только YouTube", this.data.destinations.youtube_only], ["YouTube + Instagram", this.data.destinations.both]]);
-    this.renderBars("source-bars", [["QR", sources.qr], ["Без QR-метки", sources.direct]]);
+    this.renderBars("source-bars", [["QR", sources.qr], ["Без QR", sources.direct]]);
     const rows = daily.map(day => {
       const row = document.createElement("tr");
       for (const value of [shortDate(day.date), day.page_views, day.sessions, day.youtube, day.instagram]) {
