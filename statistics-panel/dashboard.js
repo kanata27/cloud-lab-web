@@ -317,8 +317,8 @@ class Dashboard {
       day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: this.timeZone,
     }).format(new Date(this.data.generated_at));
     this.renderBars("platform-bars", [["Только Instagram", this.data.destinations.instagram_only], ["Только YouTube", this.data.destinations.youtube_only], ["YouTube + Instagram", this.data.destinations.both]]);
-    this.renderBars("source-bars", [["QR", sources.qr], ["Без QR", sources.direct]]);
-    const rows = daily.map(day => {
+    this.renderBars("source-bars", [["QR", sources.qr], ["Прямой трафик (без QR)", sources.direct]]);
+    const rows = [...daily].reverse().map(day => {
       const row = document.createElement("tr");
       for (const value of [shortDate(day.date), day.page_views, day.sessions, day.youtube, day.instagram]) {
         const cell = document.createElement("td");
