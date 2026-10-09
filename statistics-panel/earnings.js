@@ -138,7 +138,7 @@ function openEntry(entry=null){
  $('entry-dialog').showModal();loadRates();
 }
 function closeEntry(){if(saving)return;if(dirty&&!confirm('Закрыть без сохранения изменений?'))return;++rateSerial;$('entry-dialog').close();}
-$('add-entry').addEventListener('click',()=>openEntry());$('first-entry').addEventListener('click',()=>openEntry());
+$('add-entry').addEventListener('click',()=>openEntry());
 for(const id of ['close-entry','cancel-entry'])$(id).addEventListener('click',closeEntry);
 $('entry-dialog').addEventListener('cancel',e=>{e.preventDefault();closeEntry();});
 $('entry-form').addEventListener('input',()=>{dirty=true;updateEstimate();});$('entry-spot').addEventListener('change',()=>{dirty=true;updateEstimate();});
