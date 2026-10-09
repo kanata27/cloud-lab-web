@@ -10,7 +10,7 @@ export const publicFiles = [
   ["index.html", "index.html"],
   ["style.css", "style.css"],
   ["analytics.js", "analytics.js"],
-  ...["index.html", "login.html", "dashboard.js", "login.js", "dashboard.css", "login.css"]
+  ...["index.html", "login.html", "dashboard.js", "login.js", "dashboard.css", "login.css", "earnings.html", "earnings.css", "earnings.js", "earnings-model.js"]
     .map(name => [`statistics-panel/${name}`, `stat-panel/${name}`]),
   ...["apple-touch-icon.png", "favicon.ico", "favicon.svg", "hero.webp", "kanata-logo.svg", "og-image.jpg"]
     .map(name => [`assets/${name}`, `assets/${name}`]),

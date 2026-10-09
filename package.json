@@ -3,14 +3,16 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=24 <25" },
+  "engines": {
+    "node": ">=24 <25"
+  },
   "scripts": {
     "build": "node tools/build.mjs",
     "test": "node --test tests/*.test.mjs",
     "test:browser": "playwright test",
-    "dev": "npm run build && wrangler dev --config wrangler.preview.jsonc --ip 127.0.0.1 --port 8787",
-    "deploy:preview": "npm run build && wrangler deploy --config wrangler.preview.jsonc",
-    "deploy:production": "npm run build && wrangler deploy --config wrangler.production.jsonc"
+    "dev": "npm run build && wrangler d1 migrations apply EARNINGS_DB --local --config wrangler.preview.jsonc && wrangler dev --config wrangler.preview.jsonc --ip 127.0.0.1 --port 8787",
+    "deploy:preview": "node tools/check-earnings-config.mjs preview && npm run build && wrangler d1 migrations apply EARNINGS_DB --remote --config wrangler.preview.jsonc && wrangler deploy --config wrangler.preview.jsonc",
+    "deploy:production": "node tools/check-earnings-config.mjs production && npm run build && wrangler d1 migrations apply EARNINGS_DB --remote --config wrangler.production.jsonc && wrangler deploy --config wrangler.production.jsonc"
   },
   "devDependencies": {
     "@playwright/test": "1.63.0",

@@ -94,8 +94,17 @@ test("login, bearer auth, date filters, charts, mobile view and logout keep work
   await page.locator("#source").selectOption("qr");
   await expect(page.locator("#source-bars .bar-heading").first()).toContainText("100");
   expect(seen.some(url => url.includes("source=qr"))).toBe(true);
+  const beforeCustomRange = seen.length;
+  await page.locator("#from").fill("2026-09-01");
+  await page.locator("#to").fill("2026-09-03");
+  await expect(page.locator("#views-value")).toHaveText("56");
+  expect(seen).toHaveLength(beforeCustomRange);
+  await page.getByRole("button", { name: "Показать", exact: true }).click();
+  await expect(page.locator("#views-value")).toHaveText("24");
+  expect(Object.fromEntries(new URL(seen.at(-1)).searchParams)).toEqual({ from: "2026-09-01", to: "2026-09-03", source: "qr" });
   for (const width of [320, 390, 1440]) {
     await page.setViewportSize({ width, height: 900 });
+    await expect(page.getByRole("button", { name: "Показать", exact: true })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   }
   await page.emulateMedia({ colorScheme: "dark" });

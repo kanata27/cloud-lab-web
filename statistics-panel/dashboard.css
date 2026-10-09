@@ -701,3 +701,8 @@ th:first-child,td:first-child {
   .calendar-navigation { gap:3px; }
   .calendar-arrow { min-width:28px; }
 }
+
+.panel-nav { display:flex; gap:18px; flex-wrap:wrap; }
+.panel-nav a { color:inherit; text-decoration:none; padding:10px 0; }
+.panel-nav [aria-current] { border-bottom:2px solid currentColor; }
+@media(max-width:760px) { .masthead .panel-nav { grid-column:1 / -1; grid-row:2; font-size:14px; } }

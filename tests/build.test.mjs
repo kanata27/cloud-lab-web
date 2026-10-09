@@ -34,13 +34,15 @@ test("API URL and CSP stay aligned; unsafe public configuration is rejected", ()
   }
 });
 
-test("production and preview are isolated asset-only deployments", async () => {
+test("production and preview route only the earnings API through the worker", async () => {
   const preview = JSON.parse(await readFile(join(projectRoot, "wrangler.preview.jsonc"), "utf8"));
   const production = JSON.parse(await readFile(join(projectRoot, "wrangler.production.jsonc"), "utf8"));
   for (const config of [preview, production]) {
-    assert.equal(config.main, undefined);
+    assert.equal(config.main, "worker/earnings.js");
     assert.equal(config.assets.directory, "./dist");
-    assert.equal(config.assets.run_worker_first, undefined);
+    assert.deepEqual(config.assets.run_worker_first, ["/earnings-api/*"]);
+    assert.equal(config.assets.binding, "ASSETS");
+    assert.equal(config.d1_databases[0].binding, "EARNINGS_DB");
     assert.notEqual(config.assets.not_found_handling, "single-page-application");
   }
   assert.notEqual(preview.name, production.name);

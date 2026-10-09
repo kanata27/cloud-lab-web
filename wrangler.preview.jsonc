@@ -7,9 +7,25 @@
   "assets": {
     "directory": "./dist",
     "html_handling": "auto-trailing-slash",
-    "not_found_handling": "404-page"
+    "not_found_handling": "404-page",
+    "binding": "ASSETS",
+    "run_worker_first": [
+      "/earnings-api/*"
+    ]
   },
   "routes": [
-    { "pattern": "preview.kanata27.com", "custom_domain": true }
+    {
+      "pattern": "preview.kanata27.com",
+      "custom_domain": true
+    }
+  ],
+  "main": "worker/earnings.js",
+  "d1_databases": [
+    {
+      "binding": "EARNINGS_DB",
+      "database_name": "kanata-earnings-preview",
+      "database_id": "904123f3-aad7-49bf-94b9-5159e191e968",
+      "migrations_dir": "migrations"
+    }
   ]
 }
