@@ -140,14 +140,6 @@ a {
   margin-left:auto;
 }
 
-.title-row {
-  display:flex;
-  justify-content:space-between;
-  align-items:flex-end;
-  gap:20px;
-  margin-bottom:30px;
-}
-
 .eyebrow {
   text-transform:uppercase;
   font-size:11px;
@@ -158,12 +150,6 @@ a {
 
 .muted {
   color:var(--muted);
-}
-
-#updated {
-  font-size:12px;
-  max-width:250px;
-  text-align:right;
 }
 
 .filter-panel {
@@ -513,14 +499,6 @@ th:first-child,td:first-child {
   }
   .private-label {
     font-size:11px;
-  }
-  .title-row {
-    align-items:flex-start;
-    flex-direction:column;
-    gap:12px;
-  }
-  #updated {
-    text-align:left;
   }
   .filter-fields {
     grid-template-columns:1fr 1fr;

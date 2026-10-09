@@ -269,7 +269,6 @@ class Dashboard {
     this.controller = null;
     this.data = null;
     byId("report").hidden = true;
-    byId("updated").textContent = "";
     byId("dashboard").removeAttribute("aria-busy");
   }
 
@@ -281,7 +280,6 @@ class Dashboard {
       from: byId("from").value, to: byId("to").value, source: byId("source").value,
     };
     byId("report").hidden = true;
-    byId("updated").textContent = "";
     this.data = null;
     try {
       const today = todayInZone(this.timeZone);
@@ -313,9 +311,6 @@ class Dashboard {
     byId("clicks-value").textContent = integer.format(totals.outbound_clicks);
     byId("conversion-value").textContent = totals.sessions
       ? percent.format(totals.converted_sessions / totals.sessions) : "—";
-    byId("updated").textContent = "Обновлено " + new Intl.DateTimeFormat("ru-RU", {
-      day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: this.timeZone,
-    }).format(new Date(this.data.generated_at));
     this.renderBars("platform-bars", [["Только Instagram", this.data.destinations.instagram_only], ["Только YouTube", this.data.destinations.youtube_only], ["YouTube + Instagram", this.data.destinations.both]]);
     this.renderBars("source-bars", [["QR", sources.qr], ["Прямой трафик (без QR)", sources.direct]]);
     const rows = [...daily].reverse().map(day => {
