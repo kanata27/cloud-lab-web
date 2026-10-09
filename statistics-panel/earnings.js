@@ -39,7 +39,7 @@ function render(){
  const body=$('entries-body');body.replaceChildren();
  for(const entry of entries){
   const tr=node('tr');tr.append(node('td',entry.date.split('-').reverse().join('.')));
-  const time=node('td',`${entry.start}–${entry.end}${entry.nextDay?' (+1 день)':''}`);time.append(node('small',hours(entry.minutes)));tr.append(time);
+  const time=node('td',`${entry.start}–${entry.end}`);time.append(node('small',hours(entry.minutes)));tr.append(time);
   tr.append(node('td',spots.find(s=>s.id===entry.spotId)?.name||'Точка'));
   tr.append(node('td',entry.amounts.filter(a=>a.minor>0).map(a=>money(a.minor,a.currency)).join(' · ')||'0 CZK'));
   const total=node('td');total.append(node('strong',money(entry.czkMinor)),node('small',`(${money(entry.eurMinor,'€')})`));tr.append(total);
@@ -53,23 +53,29 @@ function render(){
  renderCharts();
 }
 function svgNode(tag,attrs={},text){const n=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [k,v]of Object.entries(attrs))n.setAttribute(k,v);if(text!==undefined)n.textContent=text;return n;}
+function chartScale(values){
+ const upper=Math.max(1,...values)*1.1,rawStep=upper/4,magnitude=10**Math.floor(Math.log10(rawStep)),fraction=rawStep/magnitude;
+ const step=(fraction<1.5?1:fraction<3.5?2:fraction<7.5?5:10)*magnitude;
+ const intervals=Math.ceil(upper/step),max=intervals*step;
+ return {max,ticks:Array.from({length:intervals+1},(_,i)=>Number((i*step).toPrecision(12)))};
+}
 function renderCharts(){
  const host=$('daily-chart');host.replaceChildren();const groups=new Map();
  entries.forEach(e=>groups.set(e.date,[...(groups.get(e.date)||[]),e]));
  const data=[...groups].sort(([a],[b])=>a.localeCompare(b)).map(([date,items])=>({date,...summary(items)}));
  if(!data.length)host.append(node('p','График появится после добавления выступлений.','muted'));
  else{
-  const width=Math.max(280,host.clientWidth),height=245,left=45,right=12,top=25,bottom=35,plot=width-left-right;
+  const values=data.map(d=>chartMode==='sum'?d.czkMinor/100:d.hourCzk),{max,ticks}=chartScale(values);
+  const width=Math.max(280,host.clientWidth),height=245,left=Math.max(45,number.format(max).length*7+16),right=12,top=30,bottom=35,plot=width-left-right;
   const svg=svgNode('svg',{viewBox:`0 0 ${width} ${height}`,role:'img','aria-label':chartMode==='sum'?'Заработок по дням в кронах':'Заработок за час по дням в кронах'});
-  const values=data.map(d=>chartMode==='sum'?d.czkMinor/100:d.hourCzk),max=Math.max(1,...values)*1.15;
-  for(let i=0;i<=4;i++){const y=top+(height-top-bottom)*(1-i/4);svg.append(svgNode('line',{x1:left,x2:width-right,y1:y,y2:y,class:'chart-grid'}),svgNode('text',{x:left-7,y:y+4,'text-anchor':'end',class:'chart-label'},Math.round(max*i/4)));}
+  for(const tick of ticks){const y=top+(height-top-bottom)*(1-tick/max);svg.append(svgNode('line',{x1:left,x2:width-right,y1:y,y2:y,class:'chart-grid'}),svgNode('text',{x:left-10,y:y+4,'text-anchor':'end',class:'chart-label chart-tick'},number.format(tick)));}
   const step=plot/data.length,bar=Math.max(.8,Math.min(46,step*.6)),labelStep=Math.max(1,Math.ceil(data.length/Math.max(2,Math.floor(plot/90))));
   data.forEach((d,i)=>{const value=values[i],h=value/max*(height-top-bottom),x=left+i*step+(step-bar)/2,y=height-bottom-h;
    const rect=svgNode('rect',{x,y,width:bar,height:Math.max(h,1),rx:Math.min(3,bar/2),class:'chart-bar'});
    rect.append(svgNode('title',{},`${shortDate(d.date)}: ${chartMode==='sum'?money(d.czkMinor)+' ('+money(d.eurMinor,'€')+')':one.format(d.hourCzk)+' Kč/ч ('+one.format(d.hourEur)+' €/ч)'}`));svg.append(rect);
    if(data.length<=7)svg.append(svgNode('text',{x:x+bar/2,y:y-7,'text-anchor':'middle',class:'chart-value'},one.format(value)));
    if(i%labelStep===0)svg.append(svgNode('text',{x:x+bar/2,y:height-10,'text-anchor':'middle',class:'chart-label'},shortDate(d.date)));
-  });svg.append(svgNode('text',{x:0,y:14,class:'chart-label'},chartMode==='sum'?'Kč':'Kč/ч'));host.append(svg);
+  });svg.append(svgNode('text',{x:left-10,y:14,'text-anchor':'end',class:'chart-label chart-unit'},chartMode==='sum'?'Kč':'Kč/ч'));host.append(svg);
  }
  const locationHost=$('spots-chart');locationHost.replaceChildren();
  const locationData=spots.map(spot=>({...spot,...summary(entries.filter(e=>e.spotId===spot.id))})).filter(s=>s.count).sort((a,b)=>b.hourCzk-a.hourCzk);

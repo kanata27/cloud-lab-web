@@ -38,3 +38,41 @@ test('earnings: create spot and mixed-currency entry, edit, filter, mobile and d
  expect(await page.evaluate(()=>window.violations)).toEqual([]);
 });
 test('earnings requires a session',async({page})=>{await page.goto('/stat-panel/earnings');await expect(page).toHaveURL(/login/);});
+test('earnings: full-width chart, rounded axes, compact spots and overnight display',async({page})=>{
+ await page.clock.setFixedTime(new Date('2026-10-09T20:00:00Z'));
+ await page.addInitScript(()=>sessionStorage.setItem('kanata_admin_token','test'));
+ const snapshot={requestedDate:'2026-10-03',rates:{CZK:1,EUR:24.47,USD:21.8}};
+ const spot={id:'spot-a',name:'Malostranské schody'};
+ const model=validateEntry({date:'2026-10-03',start:'11:11',end:'04:12',nextDay:true,spotId:spot.id,amounts:[{currency:'CZK',amount:'123'},{currency:'EUR',amount:'2'},{currency:'USD',amount:'1'}]});
+ let records=[{...model,...convert(model.amounts,snapshot),snapshot,id:'entry-a',version:1}];
+ await page.route('**/earnings-api/**',async route=>{
+  const url=new URL(route.request().url());
+  await route.fulfill({json:url.pathname.endsWith('/spots')?{spots:[spot]}:{entries:records}});
+ });
+ await page.goto('/stat-panel/earnings');await expect(page.locator('#entries-body tr')).toHaveCount(1);
+ await expect(page.getByRole('heading',{name:'Заработки',exact:true})).toHaveCount(0);
+ await expect(page.locator('#entries-body')).not.toContainText('+1 день');
+ await expect(page.locator('#entries-body td').nth(1)).toHaveText('11:11–04:1217 ч 1 мин');
+ for(const width of [1440,1000,390,320]){
+  await page.setViewportSize({width,height:1000});
+  await expect.poll(()=>page.evaluate(()=>{
+   const daily=document.querySelector('.daily-panel').getBoundingClientRect(),spots=document.querySelector('.spots-panel').getBoundingClientRect();
+   return spots.top>=daily.bottom&&Math.abs(spots.width-daily.width)<1&&spots.height<daily.height&&document.documentElement.scrollWidth<=innerWidth;
+  })).toBe(true);
+ }
+ await page.setViewportSize({width:1440,height:1000});
+ // Typical small, larger, zero and fractional hourly amounts all stay readable.
+ for(const [amount,expected] of [[444,['0','100','200','300','400','500']],[853,['0','200','400','600','800','1 000']],[0,['0','0,2','0,4','0,6','0,8','1','1,2']]]){
+  records=[{...records[0],czkMinor:amount*100}];await page.locator('#show').click();
+  await expect(page.locator('#daily-chart .chart-tick')).toHaveText(expected);
+  await expect.poll(()=>page.evaluate(()=>{
+   const unit=document.querySelector('#daily-chart .chart-unit'),tick=document.querySelector('#daily-chart .chart-tick'),bar=document.querySelector('#daily-chart .chart-bar');
+   return {aligned:unit.getAttribute('x')===tick.getAttribute('x'),above:unit.getBoundingClientRect().bottom<bar.getBoundingClientRect().top,inside:unit.getBoundingClientRect().left>=document.querySelector('#daily-chart').getBoundingClientRect().left};
+  })).toEqual({aligned:true,above:true,inside:true});
+ }
+ await page.getByRole('button',{name:'За час',exact:true}).click();
+ await expect(page.locator('#daily-chart .chart-unit')).toHaveText('Kč/ч');
+ await page.locator('.entry-actions summary').click();await page.getByRole('button',{name:'Изменить данные'}).click();
+ await expect(page.locator('#next-day')).toBeChecked();
+ await expect(page.locator('#duration')).toHaveText('17 ч 1 мин · время Праги');
+});
