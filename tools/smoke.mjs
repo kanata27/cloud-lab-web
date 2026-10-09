@@ -14,7 +14,7 @@ async function read(url, options = {}) {
   }
   throw lastError;
 }
-for (const path of ["/", "/?q=migration-check", "/assets/hero.webp", "/site-config.js", "/stat-panel/login.html", "/stat-panel/index.html"]) {
+for (const path of ["/", "/?q=migration-check", "/assets/hero.webp", "/site-config.js", "/stat-panel/login.html", "/stat-panel/index.html", "/stat-panel/earnings", "/stat-panel/earnings.js"]) {
   const response = await read(origin + path);
   assert.equal(response.status, 200, `HTTP error on ${path}`);
   assert.equal(new URL(response.url).origin, origin, "Unexpected cross-origin redirect");
@@ -36,3 +36,5 @@ for (const headers of [{ Origin: origin }, { Origin: origin, Authorization: "Bea
   assert.ok([401, 403].includes(response.status), "Stats API must reject missing/invalid tokens");
 }
 console.log(`PASS: ${origin}, assets, panel paths, CORS and unauthenticated API rejection.`);
+
+assert.equal((await read(origin + "/earnings-api/spots")).status, 401, "Earnings must require authentication");

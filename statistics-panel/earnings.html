@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow,noarchive"><meta name="color-scheme" content="light dark">
+<title>kanata · Заработки</title><link rel="icon" href="/assets/favicon.svg"><link rel="stylesheet" href="/stat-panel/earnings.css">
+<script src="/site-config.js" defer></script><script type="module" src="/stat-panel/earnings.js"></script>
+</head>
+<body>
+<main class="shell" id="app" hidden>
+<header class="masthead"><a class="brand" href="/"><img src="/assets/kanata-logo.svg" alt="kanata" width="150" height="40"></a><nav aria-label="Панель управления"><a href="/stat-panel/">Посещения</a><a href="/stat-panel/earnings.html" aria-current="page">Заработки</a></nav><button id="logout" class="quiet">Выйти</button></header>
+<div class="title-row"><h1>Заработки</h1><button id="add-entry" class="primary">＋ Добавить запись</button></div>
+<form id="filters" class="panel filters"><label>С<input type="date" id="from" required></label><label>По<input type="date" id="to" required></label><label>Точка<select id="filter-spot"><option value="">Все точки</option></select></label><div class="presets"><button type="button" data-days="1">Сегодня</button><button type="button" data-days="7">Неделя</button><button type="button" data-days="30">Месяц</button></div><button type="submit" class="primary" id="show">Показать</button></form>
+<div id="message" role="status" class="message" hidden></div>
+<section id="report" aria-label="Сводка заработков" hidden>
+<div class="metrics"><article class="panel metric"><h2>Всего</h2><p id="total-czk">—</p><span id="total-eur">—</span></article><article class="panel metric"><h2>В среднем за час</h2><p id="hour-czk">—</p><span id="hour-eur">—</span></article><article class="panel metric"><h2>Время выступлений</h2><p id="total-time">—</p></article><article class="panel metric"><h2>Выступлений</h2><p id="count">—</p></article></div>
+<div class="charts"><section class="panel"><div class="section-heading"><h2>Заработок по дням</h2><div class="switch" role="group" aria-label="Показатель графика"><button type="button" data-chart="sum" aria-pressed="true">Сумма</button><button type="button" data-chart="hour" aria-pressed="false">За час</button></div></div><div id="daily-chart" class="daily-chart"></div></section><section class="panel"><h2>По точкам · за час</h2><div id="spots-chart"></div></section></div>
+<section class="panel performances"><h2>Выступления</h2><div id="empty" class="empty" hidden><p>За этот период выступлений нет.</p><button id="first-entry" type="button">Добавить выступление</button></div><div class="table-wrap"><table id="entries-table"><thead><tr><th>Дата</th><th>Время</th><th>Точка</th><th>Получено</th><th>Итого</th><th>За час</th><th><span class="sr-only">Действия</span></th></tr></thead><tbody id="entries-body"></tbody></table></div></section>
+</section>
+</main>
+<dialog id="entry-dialog" class="drawer" aria-labelledby="entry-title"><form id="entry-form">
+<div class="drawer-heading"><h2 id="entry-title">Добавить выступление</h2><button id="close-entry" type="button" class="icon-button" aria-label="Закрыть">×</button></div>
+<label>Дата<input id="entry-date" name="date" type="date" required></label>
+<div class="two-columns"><label>Начало<input id="entry-start" name="start" type="time" required></label><label>Конец<input id="entry-end" name="end" type="time" required></label></div>
+<label class="check"><input id="next-day" type="checkbox">Окончание на следующий день</label><p class="muted" id="duration">Время Праги</p>
+<label>Точка<select id="entry-spot" required></select></label><button id="new-spot" type="button" class="new-spot">＋ Новая точка</button>
+<h3>Получено</h3><div id="amounts"></div><button type="button" id="add-currency">＋ Добавить валюту</button>
+<div id="estimate" class="estimate" aria-live="polite"><span>Итого</span><strong id="estimate-total">—</strong><span id="estimate-hour">—</span></div>
+<p id="form-error" class="message error" role="alert" hidden></p>
+<div class="drawer-actions"><button type="submit" id="save-entry" class="primary">Сохранить запись</button><button id="cancel-entry" type="button">Отмена</button></div>
+</form></dialog>
+<dialog id="spot-dialog" class="small-dialog" aria-labelledby="spot-title"><form id="spot-form"><h2 id="spot-title">Новая точка</h2><label>Название<input id="spot-name" maxlength="80" required autocomplete="off" placeholder="Например, набережная"></label><p id="spot-error" class="message error" role="alert" hidden></p><div class="dialog-actions"><button id="cancel-spot" type="button">Отмена</button><button class="primary" id="save-spot" type="submit">Добавить точку</button></div></form></dialog>
+<dialog id="delete-dialog" class="small-dialog" aria-labelledby="delete-title"><h2 id="delete-title">Удалить выступление?</h2><p id="delete-description"></p><p id="delete-error" class="message error" role="alert" hidden></p><div class="dialog-actions"><button id="cancel-delete" type="button">Отмена</button><button id="confirm-delete" class="danger" type="button">Удалить</button></div></dialog>
+</body></html>

@@ -9,3 +9,5 @@ artifacts/
 .dev.vars*
 aws-inventory*.json
 *.log
+
+earnings-backup*.sql
