@@ -16,7 +16,8 @@ export async function authorize(request,fetcher=fetch) {
   const date=new Date().toISOString().slice(0,10);
   const query=new URLSearchParams({from:date,to:date,source:'all',time_zone:'UTC'});
   let response;
-  try{response=await fetcher(`${config.apiBase}/stats?${query}`,{headers:{Authorization:token,Accept:'application/json'},redirect:'error',signal:AbortSignal.timeout(10000)});}catch{fail('Сервис входа временно недоступен. Попробуй ещё раз.',503);}
+  // Workers supports manual redirects; the response checks below reject every 3xx.
+  try{response=await fetcher(`${config.apiBase}/stats?${query}`,{headers:{Authorization:token,Accept:'application/json'},redirect:'manual',signal:AbortSignal.timeout(10000)});}catch{fail('Сервис входа временно недоступен. Попробуй ещё раз.',503);}
   if([401,403].includes(response.status)) fail('Сессия истекла. Войди заново.',401);
   if(!response.ok) fail('Не удалось проверить вход. Попробуй ещё раз.',503);
   // The existing protected endpoint is the authority; never trust a decoded JWT alone.
