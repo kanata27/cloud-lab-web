@@ -28,7 +28,7 @@
     {
       "binding": "EARNINGS_DB",
       "database_name": "kanata-earnings-production",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "8bfb46ec-55d4-43e0-85fc-47fcb67f927a",
       "migrations_dir": "migrations"
     }
   ]
