@@ -5,7 +5,7 @@ on:
     branches: [main]
 
   push:
-    branches: [main]
+    branches: [main, 'feature/**']
 
   workflow_dispatch:
     inputs:
@@ -40,18 +40,19 @@ jobs:
   deploy:
     needs: check
     if: >-
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/feature/')) ||
       (github.event_name == 'workflow_dispatch' && inputs.target == 'preview') ||
       (github.ref == 'refs/heads/main' &&
        (github.event_name == 'workflow_dispatch' ||
         (github.event_name == 'push' && vars.CLOUDFLARE_PRODUCTION_ENABLED == 'true')))
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    environment: ${{ inputs.target || 'production' }}
+    environment: ${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/feature/') && 'preview') || inputs.target || 'production' }}
     concurrency:
-      group: cloudflare-${{ inputs.target || 'production' }}
+      group: cloudflare-${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/feature/') && 'preview') || inputs.target || 'production' }}
       cancel-in-progress: false
     env:
-      TARGET: ${{ inputs.target || 'production' }}
+      TARGET: ${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/feature/') && 'preview') || inputs.target || 'production' }}
       WRANGLER_SEND_METRICS: 'false'
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -62,12 +63,11 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
-      - name: Reject an outdated production revision
-        if: env.TARGET == 'production'
+      - name: Reject an outdated branch revision
         shell: bash
         run: |
-          latest_main=$(git ls-remote origin refs/heads/main | cut -f1)
-          test "$latest_main" = "$GITHUB_SHA" || { echo 'main changed during checks. Run the workflow on the latest main.'; exit 1; }
+          latest_revision=$(git ls-remote origin "$GITHUB_REF" | cut -f1)
+          test "$latest_revision" = "$GITHUB_SHA" || { echo 'The branch changed during checks. Deploy the latest commit.'; exit 1; }
       - name: Validate deployment settings
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -94,7 +94,7 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         # In CI Wrangler updates the listed custom-domain DNS records itself.
-        # Production is an explicit dispatch until the repository flag is set.
+        # Feature pushes deploy preview after checks. Production keeps its existing gate.
         run: npm run "deploy:$TARGET"
       - name: Check deployed public routes
         run: node tools/smoke.mjs "$TARGET"
