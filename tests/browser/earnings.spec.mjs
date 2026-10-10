@@ -156,21 +156,35 @@ test('earnings: spots comparison hides for zero or one place and updates after a
  await expect(page.locator('#spots-panel')).toBeHidden();
 });
 
-test('earnings: action follows the content with a 20px gap and readable rows',async({page})=>{
+test('earnings: desktop action stays beside the report during scrolling, mobile stays below it',async({page})=>{
  await page.clock.setFixedTime(new Date('2026-10-10T09:00:00Z'));
  await page.addInitScript(()=>sessionStorage.setItem('kanata_admin_token','test'));
  const model=validateEntry({date:'2026-10-04',spotId:'spot-a',start:'11:11',end:'12:12',nextDay:false,amounts:[{currency:'CZK',amount:'444'},{currency:'EUR',amount:'0'},{currency:'USD',amount:'0'}]});
  const entry={...model,...convert(model.amounts,{rates:{CZK:1,EUR:25,USD:20}}),id:'entry-a',version:1};
- await page.route('**/earnings-api/**',async route=>route.fulfill({json:new URL(route.request().url()).pathname.endsWith('/spots')?{spots:[{id:'spot-a',name:'Malostranské schody'}]}:{entries:[entry]}}));
- await page.goto('/stat-panel/earnings');await expect(page.locator('#entries-body tr')).toHaveCount(1);
- for(const width of [320,390,700,760,1000,1440,1599,1600,1920]){
+ const entries=Array.from({length:12},(_,i)=>({...entry,id:'entry-'+i}));
+ await page.route('**/earnings-api/**',async route=>{
+  const url=new URL(route.request().url());
+  await route.fulfill({json:url.pathname.endsWith('/spots')?{spots:[{id:'spot-a',name:'Malostranské schody'}]}:url.pathname.endsWith('/rates')?{requestedDate:url.searchParams.get('date'),rates:{CZK:1,EUR:25,USD:20}}:{entries}});
+ });
+ await page.goto('/stat-panel/earnings');await expect(page.locator('#entries-body tr')).toHaveCount(entries.length);
+ await page.evaluate(()=>document.fonts.ready);
+ for(const width of [320,390,700,760,999,1000,1024,1366,1440,1600,1920,2560]){
   await page.setViewportSize({width,height:900});
+  await page.evaluate(()=>scrollTo(0,0));
   await expect.poll(()=>page.evaluate(()=>{
    const table=document.querySelector('.performances').getBoundingClientRect(),button=document.querySelector('#add-entry').getBoundingClientRect();
-   const gap=innerWidth>=1600?button.left-table.right:button.top-table.bottom;
-   return Math.abs(gap-20)<1&&button.left>=0&&button.right<=innerWidth&&document.documentElement.scrollWidth<=innerWidth;
+   const desktop=innerWidth>=1000,gap=desktop?button.left-table.right:button.top-table.bottom,size=desktop?96:innerWidth<=700?58:64;
+   return Math.abs(gap-(desktop?24:20))<1&&button.width===size&&button.height===size
+    &&(!desktop||Math.abs(button.bottom-(innerHeight-32))<1)
+    &&button.left>=0&&button.right<=innerWidth&&document.documentElement.scrollWidth<=innerWidth;
   })).toBe(true);
   expect(await page.locator('#entries-table').evaluate(el=>getComputedStyle(el).fontSize)).toBe('16px');
+  if(width>=1000){
+   const before=await page.locator('#add-entry').boundingBox();
+   await page.evaluate(()=>scrollTo(0,500));
+   await expect.poll(()=>page.evaluate(()=>scrollY)).toBeGreaterThan(0);
+   expect(await page.locator('#add-entry').boundingBox()).toEqual(before);
+  }
  }
  await page.locator('#add-entry').click();await expect(page.locator('#entry-dialog')).toBeVisible();
 });

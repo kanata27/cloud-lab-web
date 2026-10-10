@@ -33,12 +33,10 @@ test('each self-hosted font and its license are included in the deployment allow
  assert.match(await readFile(join(projectRoot,license),'utf8'),/SIL OPEN FONT LICENSE Version 1\.1/);
 });
 
-test('earnings action is attached to the content and the spots panel starts hidden',async()=>{
+test('earnings action opens the entry dialog and the spots panel starts hidden',async()=>{
  const html=await readFile(join(projectRoot,'statistics-panel/earnings.html'),'utf8');
  assert.match(html,/class="shell earnings-shell"/);
  assert.match(html,/<div class="earnings-actions"><button id="add-entry"/);
+ assert.match(html,/<button id="add-entry"[^>]*aria-label="Добавить выступление"[^>]*aria-haspopup="dialog"[^>]*aria-controls="entry-dialog"/);
  assert.match(html,/<section class="panel spots-panel" id="spots-panel" hidden>/);
- const css=await readFile(join(projectRoot,'statistics-panel/earnings.css'),'utf8');
- for(const [,rules] of css.matchAll(/\.add-entry-fab\s*\{([^}]+)\}/g))assert.doesNotMatch(rules,/position:fixed/);
- assert.match(css,/left:calc\(100% \+ 20px\)/);
 });
