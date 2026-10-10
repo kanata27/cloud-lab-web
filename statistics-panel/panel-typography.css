@@ -1,0 +1,221 @@
+/* Golos Text is self-hosted, including Russian and Czech glyphs.
+   Fontsource 5.3.0 / SIL OFL 1.1; see fonts/OFL-Golos-Text.txt. */
+@font-face {
+  font-family:"Golos Text";
+  font-style:normal;
+  font-weight:400 900;
+  font-display:swap;
+  src:url("./fonts/golos-text-cyrillic-ext-wght-normal.woff2") format("woff2");
+  unicode-range:U+0460-052F,U+1C80-1C8A,U+20B4,U+2DE0-2DFF,U+A640-A69F,U+FE2E-FE2F;
+}
+@font-face {
+  font-family:"Golos Text";
+  font-style:normal;
+  font-weight:400 900;
+  font-display:swap;
+  src:url("./fonts/golos-text-cyrillic-wght-normal.woff2") format("woff2");
+  unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116;
+}
+@font-face {
+  font-family:"Golos Text";
+  font-style:normal;
+  font-weight:400 900;
+  font-display:swap;
+  src:url("./fonts/golos-text-latin-ext-wght-normal.woff2") format("woff2");
+  unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+}
+@font-face {
+  font-family:"Golos Text";
+  font-style:normal;
+  font-weight:400 900;
+  font-display:swap;
+  src:url("./fonts/golos-text-latin-wght-normal.woff2") format("woff2");
+  unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+
+/* One typography source for Visits, Earnings and Insights. Load last. */
+body.panel-page {
+  --panel-font:"Golos Text",system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --panel-type-ink:#242724;
+  --panel-type-muted:#676a65;
+  --panel-type-surface:#faf9f6;
+  font-family:var(--panel-font);
+  font-size:15px;
+  font-weight:400;
+  font-style:normal;
+  font-synthesis:none;
+  line-height:1.5;
+  letter-spacing:normal;
+  color:var(--panel-type-ink);
+}
+
+body.panel-page :is(button,input,select,textarea) { font-family:var(--panel-font); font-weight:400; }
+/* Keep tab baselines and the active underline identical on all three pages. */
+body.panel-page .stats-shell { padding-top:0; }
+body.panel-page .masthead {
+  display:flex;
+  align-items:center;
+  gap:40px;
+  min-height:96px;
+  padding:0;
+  margin-bottom:0;
+  border-bottom:1px solid var(--line);
+}
+body.panel-page .masthead :is(.brand,.wordmark) { display:flex; line-height:0; }
+body.panel-page .masthead :is(.brand,.wordmark) img { display:block; width:150px; height:auto; }
+body.panel-page .masthead nav {
+  display:flex;
+  align-self:stretch;
+  align-items:stretch;
+  flex-wrap:wrap;
+  gap:0 26px;
+  min-width:0;
+  padding:0;
+  font-size:17px;
+  line-height:1.5;
+}
+body.panel-page .masthead nav a {
+  position:relative;
+  display:flex;
+  align-items:center;
+  min-height:58px;
+  padding:24px 0 0;
+  border:0;
+  color:inherit;
+  text-decoration:none;
+  white-space:nowrap;
+  font-weight:500;
+  letter-spacing:normal;
+}
+body.panel-page .masthead nav a::after {
+  content:"";
+  position:absolute;
+  inset:auto 0 -1px;
+  height:2px;
+  background:transparent;
+}
+body.panel-page .masthead nav a[aria-current="page"]::after { background:#63816f; }
+body.panel-page .masthead #logout { font-size:13px; font-weight:400; line-height:1.5; }
+body.panel-page .stats-shell #filters { margin-top:44px; }
+
+body.panel-page :is(.panel > h2,.panel-heading h2,.section-heading h2,.insights-heading h1) {
+  font-family:var(--panel-font);
+  font-size:18px;
+  font-weight:500;
+  line-height:1.5;
+  letter-spacing:normal;
+}
+body.panel-page .metric h2 {
+  font-size:14px;
+  font-weight:400;
+  line-height:1.5;
+  letter-spacing:normal;
+}
+body.panel-page :is(.metric-value,.metric p) {
+  font-family:var(--panel-font);
+  font-size:clamp(26px,3.2vw,40px);
+  font-weight:400;
+  line-height:1.2;
+  letter-spacing:-.05em;
+  font-variant-numeric:tabular-nums;
+  color:var(--panel-type-ink);
+}
+body.panel-page .insights-metrics #hour-czk span {
+  font:inherit;
+  letter-spacing:inherit;
+  color:inherit;
+}
+body.panel-page :is(.metric > span,.metric .muted) {
+  font-size:12px;
+  font-weight:400;
+  line-height:1.5;
+  color:var(--panel-type-muted);
+}
+body.panel-page :is(.filter-fields label,.insights-filters label) {
+  font-size:12px;
+  font-weight:400;
+  line-height:1.5;
+}
+body.panel-page :is(.filter-fields input,.filter-fields select,.insights-filters input) {
+  font-size:16px;
+  font-weight:400;
+  line-height:1.5;
+}
+body.panel-page :is(.filter-toolbar .presets button,.insights-presets button) {
+  font-size:13px;
+  font-weight:500;
+  line-height:1.5;
+}
+body.panel-page #show { font-size:15px; font-weight:500; line-height:1.5; color:var(--panel-type-surface); }
+body.panel-page :is(.legend,.insights-legend) {
+  font-size:12px;
+  font-weight:400;
+  line-height:1.5;
+  color:var(--panel-type-muted);
+}
+body.panel-page :is(.chart,.daily-chart,.insights-chart) svg text {
+  font-family:var(--panel-font);
+  font-size:11px;
+  font-weight:400;
+  line-height:normal;
+  letter-spacing:normal;
+  font-variant-numeric:tabular-nums;
+}
+body.panel-page :is(.chart-label,.chart-axis,.chart-unit) { fill:var(--panel-type-muted); }
+body.panel-page .chart-value { fill:var(--panel-type-ink); }
+
+body.panel-page .performances > h2 { margin-bottom:19px; }
+body.panel-page .performances table { font-size:16px; line-height:1.55; }
+body.panel-page .performances th { font-size:14px; font-weight:500; padding:13px 12px; }
+body.panel-page .performances td { padding:17px 12px; }
+body.panel-page .performances td small { font-size:14px; line-height:1.6; color:var(--panel-type-muted); }
+body.panel-page .performances td strong { font-weight:400; }
+body.panel-page .performances .entry-trigger { font-size:24px; }
+
+@media(prefers-color-scheme:dark) {
+  body.panel-page { --panel-type-ink:#eceee7; --panel-type-muted:#adb4ad; --panel-type-surface:#252927; }
+  body.panel-page .masthead nav a[aria-current="page"]::after { background:#91b39b; }
+}
+@media(max-width:999px) {
+  body.panel-page .masthead {
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    column-gap:12px;
+    row-gap:8px;
+    padding-top:20px;
+  }
+  body.panel-page .masthead :is(.brand,.wordmark) { grid-column:1; grid-row:1; width:auto; }
+  body.panel-page .masthead #logout { grid-column:2; grid-row:1; justify-self:end; margin-left:0; }
+  body.panel-page .masthead nav { grid-column:1/-1; grid-row:2; flex-basis:auto; }
+  body.panel-page .masthead nav a { padding:8px 0 0; }
+  body.panel-page .earnings-shell .masthead nav { padding-right:56px; }
+  body.panel-page .earnings-shell .add-entry-fab { margin-top:11px; }
+}
+@media(max-width:760px) {
+  body.panel-page .masthead :is(.brand,.wordmark) img { width:115px; }
+  body.panel-page .masthead nav { font-size:16px; gap:0 clamp(12px,3vw,24px); }
+  body.panel-page .masthead #logout { font-size:12px; }
+  body.panel-page .stats-shell #filters { margin-top:28px; }
+  /* Native iOS date controls must stay inside their own grid column. */
+  body.panel-page .range-fields { grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; }
+  body.panel-page .range-fields label { min-width:0; }
+  body.panel-page .range-fields input {
+    display:block;
+    width:100%;
+    min-width:0;
+    max-width:100%;
+    min-height:48px;
+    padding-inline:8px;
+    -webkit-appearance:none;
+    appearance:none;
+  }
+  body.panel-page .range-fields input::-webkit-date-and-time-value { min-width:0; text-align:center; }
+  body.panel-page :is(.metric-value,.metric p) { font-size:32px; }
+  body.panel-page :is(.metric > span,.metric .muted) { font-size:12px; }
+  body.panel-page :is(.filter-toolbar .presets button,.insights-presets button) { font-size:12px; }
+}
+@media(max-width:380px) {
+  body.panel-page .range-fields { grid-template-columns:minmax(0,1fr); gap:14px; }
+  body.panel-page :is(.metric-value,.metric p) { font-size:30px; }
+  body.panel-page :is(.filter-toolbar .presets button,.insights-presets button) { font-size:11px; }
+}

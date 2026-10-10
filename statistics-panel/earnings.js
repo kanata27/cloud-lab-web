@@ -1,4 +1,5 @@
-import {DEFAULT_CURRENCIES,today,plusDays,duration,validateEntry,convert,summary} from './earnings-model.js';
+import {DEFAULT_CURRENCIES,today,duration,validateEntry,convert,summary} from './earnings-model.js';
+import {DateFilters} from './date-filter.js';
 const $=id=>document.getElementById(id),tokenKey='kanata_admin_token';
 const number=new Intl.NumberFormat('ru-RU',{maximumFractionDigits:2}),one=new Intl.NumberFormat('ru-RU',{maximumFractionDigits:1});
 const names=new Intl.DisplayNames(['ru'],{type:'currency'});
@@ -6,6 +7,8 @@ const money=(minor,unit='Kč')=>`${number.format(minor/100)} ${unit}`;
 const hours=m=>`${Math.floor(m/60)} ч ${m%60?`${m%60} мин`:''}`.trim();
 const shortDate=d=>new Intl.DateTimeFormat('ru-RU',{day:'numeric',month:'short',timeZone:'UTC'}).format(new Date(d));
 let entries=[],spots=[],editing=null,entryId=null,snapshot=null,rateSerial=0,loadSerial=0,chartMode='sum',saving=false,dirty=false,deleteTarget=null;
+let editingSpotId=null,spotSaving=false;
+let dateFilters;
 function node(tag,text,className){const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(className)n.className=className;return n;}
 function errorAt(id,message){$(id).textContent=message;$(id).hidden=!message;}
 function closeEntryMenus(){document.querySelectorAll('.entry-menu:popover-open').forEach(menu=>menu.hidePopover());}
@@ -26,12 +29,65 @@ function populateSpots(){
   select.disabled=id==='entry-spot'&&!spots.length;
   select.value=spots.some(s=>s.id===old)?old:id==='entry-spot'?(spots[0]?.id||''):'';
  }
+ renderSpotOptions();
+ syncSpotPicker();
+}
+function syncSpotPicker(){
+ const selected=spots.find(spot=>spot.id===$('entry-spot').value);
+ $('entry-spot-value').textContent=selected?.name||'Пока нет точек';
+ $('open-spots').disabled=!selected;
+ for(const row of $('spot-options').children){
+  const current=row.dataset.spotId===selected?.id;
+  row.classList.toggle('current',current);
+  row.querySelector('.spot-option-select').setAttribute('aria-pressed',String(current));
+ }
+}
+function renderSpotOptions(){
+ const rows=spots.map(spot=>{
+  const row=node('div',undefined,'spot-option'),choose=node('button',spot.name,'spot-option-select'),edit=node('button',undefined,'spot-edit');
+  row.dataset.spotId=spot.id;choose.type=edit.type='button';
+  choose.addEventListener('click',()=>{
+   const changed=$('entry-spot').value!==spot.id;
+   $('entry-spot').value=spot.id;
+   if(changed)$('entry-spot').dispatchEvent(new Event('change',{bubbles:true}));
+   $('spot-picker-menu').hidePopover();$('open-spots').focus({preventScroll:true});
+  });
+  edit.setAttribute('aria-label',`Изменить название точки «${spot.name}»`);
+  edit.setAttribute('aria-haspopup','dialog');edit.setAttribute('aria-controls','spot-dialog');edit.title='Изменить название';
+  const icon=svgNode('svg',{viewBox:'0 0 24 24',fill:'none',stroke:'currentColor','stroke-width':'1.6','aria-hidden':'true'});
+  icon.append(svgNode('path',{d:'m15 5 4 4M4 20l4-1 12-12a2.83 2.83 0 0 0-4-4L4 15z'}));edit.append(icon);
+  edit.addEventListener('click',()=>{ $('spot-picker-menu').hidePopover();openSpot(spot); });
+  row.append(choose,edit);return row;
+ });
+ $('spot-options').replaceChildren(...rows);
+}
+function positionSpotPicker(){
+ const trigger=$('open-spots'),menu=$('spot-picker-menu'),anchor=trigger.getBoundingClientRect();
+ if(anchor.bottom<=0||anchor.top>=innerHeight){menu.hidePopover();return;}
+ menu.style.width=Math.min(anchor.width,innerWidth-16)+'px';
+ positionEntryMenu(trigger,menu);
+}
+function showSpotPicker(last=false){
+ const menu=$('spot-picker-menu');
+ if($('open-spots').disabled)return;
+ if(!menu.matches(':popover-open'))menu.showPopover({source:$('open-spots')});
+ positionSpotPicker();
+ const selected=menu.querySelector('.spot-option.current .spot-option-select');
+ (selected||(last?menu.querySelector('.spot-option:last-child .spot-option-select'):menu.querySelector('.spot-option-select')))?.focus({preventScroll:true});
+}
+function openSpot(spot=null){
+ if(spotSaving)return;
+ editingSpotId=spot?.id||null;$('spot-form').reset();errorAt('spot-error','');
+ $('spot-title').textContent=spot?'Изменить название точки':'Новая точка';
+ $('save-spot').textContent=spot?'Сохранить название':'Добавить точку';
+ $('spot-name').value=spot?.name||'';
+ $('spot-dialog').showModal();$('spot-name').focus();$('spot-name').select();
 }
 async function load(){
  closeEntryMenus();
  const serial=++loadSerial;$('show').disabled=true;$('report').hidden=true;errorAt('message','Загрузка…');$('message').classList.remove('error');
  try{
-  const query=new URLSearchParams({from:$('from').value,to:$('to').value,spot:$('filter-spot').value});
+  const query=new URLSearchParams({...dateFilters.selection(),spot:$('filter-spot').value});
   const [list,locations]=await Promise.all([api('/entries?'+query),api('/spots')]);
   if(serial!==loadSerial)return;entries=list.entries;spots=locations.spots;populateSpots();render();errorAt('message','');$('report').hidden=false;
  }catch(error){if(serial===loadSerial){errorAt('message',error.message);$('message').classList.add('error');}}
@@ -100,6 +156,10 @@ function renderCharts(){
   });svg.append(svgNode('text',{x:left-10,y:14,'text-anchor':'end',class:'chart-label chart-unit'},chartMode==='sum'?'Kč':'Kč/ч'));host.append(svg);
  }
  const locationHost=$('spots-chart');locationHost.replaceChildren();
+ // Compare registered places, not just the places active in this report.
+ // A single registered place must not leave a panel or a grid gap behind.
+ $('spots-panel').hidden=spots.length<=1;
+ if($('spots-panel').hidden)return;
  const locationData=spots.map(spot=>({...spot,...summary(entries.filter(e=>e.spotId===spot.id))})).filter(s=>s.count).sort((a,b)=>b.hourCzk-a.hourCzk);
  if(!locationData.length)locationHost.append(node('p','Здесь будет сравнение точек.','muted'));
  const max=Math.max(1,...locationData.map(s=>s.hourCzk));
@@ -133,15 +193,16 @@ function openEntry(entry=null){
  $('entry-title').textContent=entry?'Изменить выступление':'Добавить выступление';$('save-entry').textContent=entry?'Сохранить изменения':'Сохранить запись';
  $('entry-date').max=today();$('entry-date').value=entry?.date||today();$('entry-start').value=entry?.start||'';$('entry-end').value=entry?.end||'';$('next-day').checked=entry?.nextDay||false;
  populateSpots();$('entry-spot').value=entry?.spotId||$('filter-spot').value||spots[0]?.id||'';
+ syncSpotPicker();
  DEFAULT_CURRENCIES.forEach(c=>currencyRow(c,String((entry?.amounts.find(a=>a.currency===c)?.minor||0)/100),true));
  if(entry){snapshot=entry.snapshot;entry.amounts.filter(a=>!DEFAULT_CURRENCIES.includes(a.currency)).forEach(a=>currencyRow(a.currency,String(a.minor/100)));}
  $('entry-dialog').showModal();loadRates();
 }
-function closeEntry(){if(saving)return;if(dirty&&!confirm('Закрыть без сохранения изменений?'))return;++rateSerial;$('entry-dialog').close();}
+function closeEntry(){if(saving)return;if(dirty&&!confirm('Закрыть без сохранения изменений?'))return;++rateSerial;if($('spot-picker-menu').matches(':popover-open'))$('spot-picker-menu').hidePopover();$('entry-dialog').close();}
 $('add-entry').addEventListener('click',()=>openEntry());
 for(const id of ['close-entry','cancel-entry'])$(id).addEventListener('click',closeEntry);
 $('entry-dialog').addEventListener('cancel',e=>{e.preventDefault();closeEntry();});
-$('entry-form').addEventListener('input',()=>{dirty=true;updateEstimate();});$('entry-spot').addEventListener('change',()=>{dirty=true;updateEstimate();});
+$('entry-form').addEventListener('input',()=>{dirty=true;updateEstimate();});$('entry-spot').addEventListener('change',()=>{dirty=true;syncSpotPicker();updateEstimate();});
 $('entry-date').addEventListener('change',loadRates);
 $('add-currency').addEventListener('click',()=>{const used=inputData().amounts.map(a=>a.currency),available=currencies().find(c=>!used.includes(c));if(!available)return;currencyRow(available);dirty=true;});
 $('entry-form').addEventListener('submit',async event=>{
@@ -150,21 +211,54 @@ $('entry-form').addEventListener('submit',async event=>{
   saving=true;$('save-entry').disabled=true;const wasEditing=Boolean(editing);
   await api(wasEditing?`/entries/${entryId}`:'/entries',{method:wasEditing?'PUT':'POST',body:JSON.stringify(input)});
   dirty=false;$('entry-dialog').close();++rateSerial;
-  if(input.date<$('from').value)$('from').value=input.date;if(input.date>$('to').value)$('to').value=input.date;
-  if((Date.parse($('to').value)-Date.parse($('from').value))/86400000>366){$('from').value=input.date;$('to').value=input.date;}
+  if(input.date<$('from').value||input.date>$('to').value){
+   let from=input.date<$('from').value?input.date:$('from').value,to=input.date>$('to').value?input.date:$('to').value;
+   if((Date.parse(to)-Date.parse(from))/86400000>366)from=to=input.date;
+   dateFilters.setRange(from,to);
+  }
   if($('filter-spot').value&&$('filter-spot').value!==input.spotId)$('filter-spot').value='';await load();
  }catch(error){errorAt('form-error',error.message);}finally{saving=false;$('save-entry').disabled=false;}
 });
-$('new-spot').addEventListener('click',()=>{$('spot-form').reset();errorAt('spot-error','');$('spot-dialog').showModal();$('spot-name').focus();});
-$('cancel-spot').addEventListener('click',()=>$('spot-dialog').close());
-$('spot-form').addEventListener('submit',async e=>{e.preventDefault();$('save-spot').disabled=true;try{const spot=await api('/spots',{method:'POST',body:JSON.stringify({name:$('spot-name').value})});if(!spots.some(s=>s.id===spot.id))spots.push(spot);populateSpots();$('entry-spot').value=spot.id;dirty=true;updateEstimate();$('spot-dialog').close();}catch(error){errorAt('spot-error',error.message);}finally{$('save-spot').disabled=false;}});
+$('open-spots').addEventListener('click',event=>{
+ event.preventDefault();const menu=$('spot-picker-menu');
+ if(menu.matches(':popover-open'))menu.hidePopover();else showSpotPicker();
+});
+$('open-spots').addEventListener('keydown',event=>{
+ if(event.key==='ArrowDown'||event.key==='ArrowUp'){event.preventDefault();showSpotPicker(event.key==='ArrowUp');}
+});
+$('spot-picker-menu').addEventListener('beforetoggle',event=>$('open-spots').setAttribute('aria-expanded',String(event.newState==='open')));
+$('spot-picker-menu').addEventListener('keydown',event=>{
+ if(!['ArrowDown','ArrowUp','Home','End'].includes(event.key))return;
+ const rows=[...$('spot-options').children],index=rows.indexOf(event.target.closest('.spot-option'));if(index<0)return;
+ event.preventDefault();
+ const next=event.key==='Home'?0:event.key==='End'?rows.length-1:(index+(event.key==='ArrowDown'?1:-1)+rows.length)%rows.length;
+ rows[next].querySelector(event.target.classList.contains('spot-edit')?'.spot-edit':'.spot-option-select').focus();
+});
+$('new-spot').addEventListener('click',()=>openSpot());
+$('cancel-spot').addEventListener('click',()=>{if(!spotSaving)$('spot-dialog').close();});
+$('spot-dialog').addEventListener('cancel',event=>{if(spotSaving)event.preventDefault();});
+$('spot-dialog').addEventListener('close',()=>{if($('entry-dialog').open)$(editingSpotId?'open-spots':'new-spot').focus({preventScroll:true});});
+$('spot-form').addEventListener('submit',async event=>{
+ event.preventDefault();if(spotSaving)return;
+ const id=editingSpotId,name=$('spot-name').value;
+ spotSaving=true;errorAt('spot-error','');
+ for(const control of ['save-spot','cancel-spot','spot-name'])$(control).disabled=true;
+ try{
+  const spot=await api(id?`/spots/${encodeURIComponent(id)}`:'/spots',{method:id?'PUT':'POST',body:JSON.stringify({name})});
+  const index=spots.findIndex(item=>item.id===spot.id);
+  if(index<0)spots.push(spot);else spots[index]=spot;
+  populateSpots();render();
+  if(!id){$('entry-spot').value=spot.id;dirty=true;}
+  syncSpotPicker();updateEstimate();$('spot-dialog').close();
+ }catch(error){errorAt('spot-error',error.message);}
+ finally{spotSaving=false;for(const control of ['save-spot','cancel-spot','spot-name'])$(control).disabled=false;}
+});
 $('cancel-delete').addEventListener('click',()=>$('delete-dialog').close());
 $('confirm-delete').addEventListener('click',async()=>{$('confirm-delete').disabled=true;try{await api(`/entries/${deleteTarget.id}`,{method:'DELETE',body:JSON.stringify({version:deleteTarget.version})});$('delete-dialog').close();await load();}catch(error){errorAt('delete-error',error.message);}finally{$('confirm-delete').disabled=false;}});
-$('filters').addEventListener('submit',e=>{e.preventDefault();load();});
-document.querySelectorAll('[data-days]').forEach(b=>b.addEventListener('click',()=>{$('to').value=today();$('from').value=plusDays(today(),1-Number(b.dataset.days));load();}));
 document.querySelectorAll('[data-chart]').forEach(b=>b.addEventListener('click',()=>{chartMode=b.dataset.chart;document.querySelectorAll('[data-chart]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));renderCharts();}));
 $('logout').addEventListener('click',expire);window.addEventListener('pageshow',e=>{if(e.persisted&&!sessionStorage.getItem(tokenKey))expire();});
 window.addEventListener('resize',closeEntryMenus);document.addEventListener('scroll',repositionEntryMenus,true);
+window.addEventListener('resize',()=>{if($('spot-picker-menu').matches(':popover-open'))positionSpotPicker();});
+document.addEventListener('scroll',()=>{if($('spot-picker-menu').matches(':popover-open'))positionSpotPicker();},true);
 new ResizeObserver(()=>{if(!$('report').hidden)renderCharts();}).observe($('daily-chart'));
-$('to').value=today();$('from').value=plusDays(today(),-29);$('to').max=$('from').max=today();
-if(!sessionStorage.getItem(tokenKey))expire();else{$('app').hidden=false;load();}
+if(!sessionStorage.getItem(tokenKey))expire();else{dateFilters=new DateFilters({timeZone:'Europe/Prague',onChange:load});$('app').hidden=false;load();}

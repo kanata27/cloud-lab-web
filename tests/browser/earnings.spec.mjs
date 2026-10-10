@@ -15,6 +15,7 @@ test('earnings: create spot and mixed-currency entry, edit, filter, mobile and d
   await route.fulfill({json:result});
  });
  await page.goto('/stat-panel/earnings');await expect(page.locator('#empty')).toBeVisible();
+ await expect(page.locator('#spots-panel')).toBeHidden();
  await page.locator('#add-entry').click();await expect(page.locator('#entry-spot')).toBeDisabled();await page.locator('#entry-start').fill('14:20');await page.locator('#entry-end').fill('17:12');
  await page.locator('#new-spot').click();await page.locator('#spot-name').fill('Набережная');await page.locator('#save-spot').click();
  await expect(page.locator('#spot-dialog')).not.toBeVisible();
@@ -27,10 +28,11 @@ test('earnings: create spot and mixed-currency entry, edit, filter, mobile and d
  await expect(page.getByRole('textbox',{name:'Сумма USD',exact:true})).toHaveValue('2');
  await expect(page.locator('#estimate-total')).toContainText('315');await expect(page.locator('#estimate-hour')).toContainText('€/ч');
  await page.locator('#save-entry').click();await expect(page.locator('#entries-body tr')).toHaveCount(1);await expect(page.locator('#total-czk')).toHaveText('315 Kč');await expect(page.locator('#hour-eur')).toContainText('€/ч');
+ await expect(page.locator('#spots-panel')).toBeHidden();
  await expect(page.locator('#entries-body select')).toHaveCount(0);await page.locator('.entry-trigger').click();await page.getByRole('button',{name:'Изменить данные'}).click();
  await page.locator('#entry-end').fill('18:20');await page.locator('#save-entry').click();await expect(page.locator('#hour-czk')).toHaveText('78,8 Kč');
  await page.locator('#from').fill('2026-09-01');await page.locator('#to').fill('2026-09-02');await page.locator('#show').click();await expect(page.locator('#empty')).toBeVisible();
- await page.getByRole('button',{name:'Месяц',exact:true}).click();await expect(page.locator('#entries-body tr')).toHaveCount(1);
+ await page.getByRole('button',{name:'Последний месяц',exact:true}).click();await expect(page.locator('#entries-body tr')).toHaveCount(1);
  for(const width of [320,390,1440]){
   await page.setViewportSize({width,height:844});
   await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
@@ -53,6 +55,7 @@ test('earnings: real spots only and hover names for one or several places',async
   await route.fulfill({json:url.pathname.endsWith('/spots')?{spots}:url.pathname.endsWith('/rates')?{...snapshot,requestedDate:url.searchParams.get('date')}:{entries:entries.filter(e=>!url.searchParams.get('spot')||e.spotId===url.searchParams.get('spot'))}});
  });
  await page.goto('/stat-panel/earnings');await expect(page.locator('#entries-body tr')).toHaveCount(4);
+ await expect(page.locator('#spots-panel')).toBeVisible();
  await expect(page.locator('#daily-chart .chart-bar title')).toHaveText(['Malostranské schody · Anděl','Anděl']);
  await page.getByRole('button',{name:'За час',exact:true}).click();
  await expect(page.locator('#daily-chart .chart-bar title')).toHaveText(['Malostranské schody · Anděl','Anděl']);
@@ -78,10 +81,71 @@ test('earnings: real spots only and hover names for one or several places',async
  await page.locator('#cancel-entry').click();
  await page.locator('#filter-spot').selectOption('spot-b');await page.locator('#show').click();
  await expect(page.locator('#entries-body tr')).toHaveCount(2);
+ // Registered spots, not active spots in the selected report, control visibility.
+ await expect(page.locator('#spots-panel')).toBeVisible();
  await expect(page.locator('#daily-chart .chart-bar title')).toHaveText(['Anděl','Anděl']);
  await page.locator('#add-entry').click();await expect(page.locator('#entry-spot')).toHaveValue('spot-b');
 });
 test('earnings requires a session',async({page})=>{await page.goto('/stat-panel/earnings');await expect(page).toHaveURL(/login/);});
+test('earnings: pencil renames a spot, handles conflicts and preserves the unsaved entry and history',async({page})=>{
+ await page.clock.setFixedTime(new Date('2026-10-10T09:00:00Z'));
+ await page.addInitScript(()=>{sessionStorage.setItem('kanata_admin_token','test');window.violations=[];document.addEventListener('securitypolicyviolation',e=>window.violations.push(e.violatedDirective));});
+ const spots=[{id:'spot-a',name:'Malostranké schody'},{id:'spot-b',name:'Anděl'}],renames=[];
+ const snapshot={requestedDate:'2026-10-04',rates:{CZK:1,EUR:25,USD:20}};
+ const model=validateEntry({date:'2026-10-04',spotId:'spot-a',start:'11:00',end:'12:00',nextDay:false,amounts:[{currency:'CZK',amount:'444'},{currency:'EUR',amount:'0'},{currency:'USD',amount:'0'}]});
+ const entry={...model,...convert(model.amounts,snapshot),snapshot,id:'entry-a',version:1};
+ await page.route('**/earnings-api/**',async route=>{
+  const req=route.request(),url=new URL(req.url());
+  if(req.method()==='PUT'&&url.pathname.includes('/spots/')){
+   const id=url.pathname.split('/').at(-1),data=req.postDataJSON();renames.push({id,data});
+   if(spots.some(spot=>spot.id!==id&&spot.name===data.name))return route.fulfill({status:409,json:{error:'Точка с таким названием уже существует.'}});
+   await new Promise(resolve=>setTimeout(resolve,250));
+   const spot=spots.find(item=>item.id===id);spot.name=data.name.trim();return route.fulfill({json:spot});
+  }
+  expect(req.method()).toBe('GET');
+  await route.fulfill({json:url.pathname.endsWith('/spots')?{spots}:url.pathname.endsWith('/rates')?{...snapshot,requestedDate:url.searchParams.get('date')}:{entries:[entry]}});
+ });
+ await page.goto('/stat-panel/earnings');await expect(page.locator('#entries-body')).toContainText('Malostranké schody');
+ await page.locator('#add-entry').click();
+ await page.locator('#entry-start').fill('14:20');await page.locator('#entry-end').fill('17:12');
+ await page.getByRole('textbox',{name:'Сумма CZK',exact:true}).fill('220');
+ await page.locator('#open-spots').focus();await page.keyboard.press('ArrowDown');
+ await expect(page.locator('#spot-picker-menu')).toBeVisible();
+ await expect(page.locator('.spot-edit')).toHaveCount(2);
+ await page.keyboard.press('End');await page.keyboard.press('Enter');
+ await expect(page.locator('#entry-spot')).toHaveValue('spot-b');
+ await expect(page.locator('#entry-spot-value')).toHaveText('Anděl');
+ await page.locator('#open-spots').click();
+ await page.getByRole('button',{name:'Изменить название точки «Malostranké schody»',exact:true}).click();
+ await expect(page.locator('#spot-picker-menu')).toBeHidden();
+ await expect(page.locator('#spot-title')).toHaveText('Изменить название точки');
+ await expect(page.locator('#spot-name')).toHaveValue('Malostranké schody');
+ await page.locator('#spot-name').fill('Anděl');await page.locator('#save-spot').click();
+ await expect(page.locator('#spot-error')).toContainText('уже существует');
+ await expect(page.locator('#spot-dialog')).toBeVisible();await expect(page.locator('#save-spot')).toBeEnabled();
+ await page.locator('#spot-name').fill('Malostranské schody');await page.locator('#save-spot').click();
+ await expect(page.locator('#cancel-spot')).toBeDisabled();await page.keyboard.press('Escape');
+ await expect(page.locator('#spot-dialog')).toBeVisible();
+ await expect(page.locator('#spot-dialog')).toBeHidden();
+ await expect(page.locator('#open-spots')).toBeFocused();
+ await expect(page.locator('#entry-spot')).toHaveValue('spot-b');
+ await expect(page.locator('#entry-start')).toHaveValue('14:20');await expect(page.locator('#entry-end')).toHaveValue('17:12');
+ await expect(page.getByRole('textbox',{name:'Сумма CZK',exact:true})).toHaveValue('220');
+ await expect(page.locator('#entry-spot option')).toHaveText(['Malostranské schody','Anděl']);
+ expect(renames).toEqual([{id:'spot-a',data:{name:'Anděl'}},{id:'spot-a',data:{name:'Malostranské schody'}}]);
+ await page.locator('#open-spots').click();
+ await page.getByRole('button',{name:'Изменить название точки «Anděl»',exact:true}).click();
+ await page.locator('#spot-name').fill('Cancelled');await page.keyboard.press('Escape');
+ await expect(page.locator('#spot-dialog')).toBeHidden();
+ await expect(page.locator('#entry-spot-value')).toHaveText('Anděl');expect(renames).toHaveLength(2);
+ page.once('dialog',dialog=>dialog.accept());await page.locator('#cancel-entry').click();
+ await expect(page.locator('#entries-body')).toContainText('Malostranské schody');
+ await expect(page.locator('#filter-spot option')).toHaveText(['Все точки','Malostranské schody','Anděl']);
+ await expect(page.locator('#total-czk')).toHaveText('444 Kč');
+ await page.reload();await expect(page.locator('#entries-body')).toContainText('Malostranské schody');
+ expect(entry.spotId).toBe('spot-a');expect(entry.version).toBe(1);
+ expect(await page.evaluate(()=>window.violations)).toEqual([]);
+});
 test('earnings: full-width chart, rounded axes, compact spots and overnight display',async({page})=>{
  await page.clock.setFixedTime(new Date('2026-10-09T20:00:00Z'));
  await page.addInitScript(()=>sessionStorage.setItem('kanata_admin_token','test'));
@@ -91,7 +155,7 @@ test('earnings: full-width chart, rounded axes, compact spots and overnight disp
  let records=[{...model,...convert(model.amounts,snapshot),snapshot,id:'entry-a',version:1}];
  await page.route('**/earnings-api/**',async route=>{
   const url=new URL(route.request().url());
-  await route.fulfill({json:url.pathname.endsWith('/spots')?{spots:[spot]}:{entries:records}});
+  await route.fulfill({json:url.pathname.endsWith('/spots')?{spots:[spot,{id:'spot-b',name:'Anděl'}]}:{entries:records}});
  });
  await page.goto('/stat-panel/earnings');await expect(page.locator('#entries-body tr')).toHaveCount(1);
  await expect(page.getByRole('heading',{name:'Заработки',exact:true})).toHaveCount(0);
@@ -119,4 +183,67 @@ test('earnings: full-width chart, rounded axes, compact spots and overnight disp
  await page.locator('.entry-trigger').click();await page.getByRole('button',{name:'Изменить данные'}).click();
  await expect(page.locator('#next-day')).toBeChecked();
  await expect(page.locator('#duration')).toHaveText('17 ч 1 мин · время Праги');
+});
+
+test('earnings: spots comparison hides for zero or one place and updates after adding a second',async({page})=>{
+ await page.clock.setFixedTime(new Date('2026-10-10T09:00:00Z'));
+ await page.addInitScript(()=>sessionStorage.setItem('kanata_admin_token','test'));
+ let spots=[];
+ await page.route('**/earnings-api/**',async route=>{
+  const req=route.request(),url=new URL(req.url());let result;
+  if(url.pathname.endsWith('/spots')){
+   if(req.method()==='POST'){result={id:'spot-'+(spots.length+1),name:req.postDataJSON().name};spots.push(result);}
+   else result={spots};
+  }else if(url.pathname.endsWith('/rates'))result={requestedDate:url.searchParams.get('date'),rates:{CZK:1,EUR:25,USD:20}};
+  else result={entries:[]};
+  await route.fulfill({json:result});
+ });
+ await page.goto('/stat-panel/earnings');await expect(page.locator('#report')).toBeVisible();
+ await expect(page.locator('#spots-panel')).toBeHidden();
+ await page.locator('#add-entry').click();
+ for(const [name,visible] of [['Набережная',false],['Anděl',true]]){
+  await page.locator('#new-spot').click();await page.locator('#spot-name').fill(name);await page.locator('#save-spot').click();
+  await expect(page.locator('#spot-dialog')).toBeHidden();
+  // The entry drawer covers the report, so assert the hidden attribute directly.
+  await expect(page.locator('#spots-panel')).toHaveJSProperty('hidden',!visible);
+ }
+ page.once('dialog',dialog=>dialog.accept());
+ await page.locator('#cancel-entry').click();
+ await expect(page.locator('#entry-dialog')).toBeHidden();
+ await expect(page.locator('#spots-panel')).toBeVisible();
+ spots=spots.slice(0,1);await page.locator('#show').click();
+ await expect(page.locator('#spots-panel')).toBeHidden();
+});
+
+test('earnings: action stays accessible while scrolling, beside desktop content or mobile tabs',async({page})=>{
+ await page.clock.setFixedTime(new Date('2026-10-10T09:00:00Z'));
+ await page.addInitScript(()=>sessionStorage.setItem('kanata_admin_token','test'));
+ const model=validateEntry({date:'2026-10-04',spotId:'spot-a',start:'11:11',end:'12:12',nextDay:false,amounts:[{currency:'CZK',amount:'444'},{currency:'EUR',amount:'0'},{currency:'USD',amount:'0'}]});
+ const entry={...model,...convert(model.amounts,{rates:{CZK:1,EUR:25,USD:20}}),id:'entry-a',version:1};
+ const entries=Array.from({length:12},(_,i)=>({...entry,id:'entry-'+i}));
+ await page.route('**/earnings-api/**',async route=>{
+  const url=new URL(route.request().url());
+  await route.fulfill({json:url.pathname.endsWith('/spots')?{spots:[{id:'spot-a',name:'Malostranské schody'}]}:url.pathname.endsWith('/rates')?{requestedDate:url.searchParams.get('date'),rates:{CZK:1,EUR:25,USD:20}}:{entries}});
+ });
+ await page.goto('/stat-panel/earnings');await expect(page.locator('#entries-body tr')).toHaveCount(entries.length);
+ await page.evaluate(()=>document.fonts.ready);
+ for(const width of [320,390,414,700,760,999,1000,1024,1366,1440,1600,1920,2560]){
+  await page.setViewportSize({width,height:900});
+  await page.evaluate(()=>scrollTo(0,0));
+  await expect.poll(()=>page.evaluate(()=>{
+   const table=document.querySelector('.performances').getBoundingClientRect(),button=document.querySelector('#add-entry').getBoundingClientRect(),header=document.querySelector('.masthead').getBoundingClientRect();
+   const desktop=innerWidth>=1000,size=desktop?64:44;
+   const placed=desktop?Math.abs(button.left-table.right-24)<1&&Math.abs(button.bottom-(innerHeight-32))<1
+    :button.top>=header.top&&button.bottom<=header.bottom&&[...document.querySelectorAll('.masthead nav a')].every(link=>link.getBoundingClientRect().right<=button.left);
+   return placed&&button.width===size&&button.height===size
+    &&button.left>=0&&button.right<=innerWidth&&document.documentElement.scrollWidth<=innerWidth;
+  })).toBe(true);
+  expect(await page.locator('#entries-table').evaluate(el=>getComputedStyle(el).fontSize)).toBe('16px');
+  const before=await page.locator('#add-entry').boundingBox();
+  await page.evaluate(()=>scrollTo(0,500));
+  await expect.poll(()=>page.evaluate(()=>scrollY)).toBeGreaterThan(0);
+  expect(await page.locator('#add-entry').boundingBox()).toEqual(before);
+  await page.locator('#add-entry').click();await expect(page.locator('#entry-dialog')).toBeVisible();
+  await page.locator('#cancel-entry').click();await expect(page.locator('#entry-dialog')).toBeHidden();
+ }
 });

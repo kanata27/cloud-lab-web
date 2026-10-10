@@ -3,6 +3,11 @@ import {dateValid,today,validateEntry,convert} from '../statistics-panel/earning
 const PREFIX='/earnings-api';
 const json=(data,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','X-Frame-Options':'DENY','Content-Security-Policy':"default-src 'none'; frame-ancestors 'none'",'Vary':'Authorization'}});
 function fail(message,status=400){throw Object.assign(new Error(message),{status});}
+function spotName(data){
+  const name=typeof data.name==='string'?data.name.trim().normalize('NFC'):'';
+  if(!name||name.length>80||/[\u0000-\u001f]/.test(name)) fail('Название точки: от 1 до 80 символов.');
+  return name;
+}
 async function body(request) {
   if(!request.headers.get('Content-Type')?.startsWith('application/json')) fail('Ожидается JSON.',415);
   const text=await request.text();if(text.length>16000) fail('Слишком большая запись.',413);
@@ -56,11 +61,21 @@ export default {async fetch(request,env) {
     if(path==='/rates'&&request.method==='GET') return json(await ratesFor(url.searchParams.get('date'),db));
     if(path==='/spots'&&request.method==='GET') return json({spots:(await db.prepare('SELECT id,name FROM earnings_spots ORDER BY name').all()).results});
     if(path==='/spots'&&request.method==='POST'){
-      const data=await body(request),name=typeof data.name==='string'?data.name.trim().normalize('NFC'):'';
-      if(!name||name.length>80||/[\u0000-\u001f]/.test(name)) fail('Название точки: от 1 до 80 символов.');
+      const name=spotName(await body(request));
       const id=crypto.randomUUID(),key=name.toLocaleLowerCase('ru-RU');
       await db.prepare('INSERT OR IGNORE INTO earnings_spots(id,name,name_key,created_at) VALUES(?,?,?,?)').bind(id,name,key,new Date().toISOString()).run();
       return json(await db.prepare('SELECT id,name FROM earnings_spots WHERE name_key=?').bind(key).first(),201);
+    }
+    const spotMatch=path.match(/^\/spots\/([\w-]{1,64})$/);
+    if(spotMatch&&request.method==='PUT'){
+      const id=spotMatch[1],name=spotName(await body(request)),key=name.toLocaleLowerCase('ru-RU');
+      // Update the existing ID so every past entry keeps its spot association.
+      // One atomic statement also prevents competing renames taking the same name.
+      const result=await db.prepare('UPDATE earnings_spots SET name=?,name_key=? WHERE id=? AND NOT EXISTS (SELECT 1 FROM earnings_spots WHERE name_key=? AND id<>?)').bind(name,key,id,key,id).run();
+      const spot=await db.prepare('SELECT id,name FROM earnings_spots WHERE id=?').bind(id).first();
+      if(!spot) fail('Точка не найдена. Обнови страницу.',404);
+      if(result.meta.changes!==1) fail('Точка с таким названием уже существует.',409);
+      return json(spot);
     }
     if(path==='/entries'&&request.method==='GET'){
       const from=url.searchParams.get('from'),to=url.searchParams.get('to'),spot=url.searchParams.get('spot')||'';
