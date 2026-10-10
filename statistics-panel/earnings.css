@@ -15,8 +15,7 @@
 @media(min-width:1000px){
  .earnings-shell{padding-right:clamp(40px,calc(856px - 50%),136px)}
  .earnings-actions{height:0;margin-top:0}
- .add-entry-fab{position:fixed;right:max(16px,calc((100% - 1440px)/2 - 80px));bottom:32px;z-index:10;width:96px;height:96px;min-height:96px}
- .add-entry-fab svg{width:40px;height:40px}
+ .add-entry-fab{position:fixed;right:max(48px,calc((100% - 1440px)/2 - 48px));bottom:32px;z-index:10;width:64px;height:64px;min-height:64px}
 }
 @media(max-width:700px){.filters{margin-top:28px}.earnings-shell{padding-bottom:calc(32px + env(safe-area-inset-bottom))}.add-entry-fab{width:58px;height:58px;min-height:58px}}
 

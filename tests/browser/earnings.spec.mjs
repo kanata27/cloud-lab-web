@@ -173,7 +173,7 @@ test('earnings: desktop action stays beside the report during scrolling, mobile 
   await page.evaluate(()=>scrollTo(0,0));
   await expect.poll(()=>page.evaluate(()=>{
    const table=document.querySelector('.performances').getBoundingClientRect(),button=document.querySelector('#add-entry').getBoundingClientRect();
-   const desktop=innerWidth>=1000,gap=desktop?button.left-table.right:button.top-table.bottom,size=desktop?96:innerWidth<=700?58:64;
+   const desktop=innerWidth>=1000,gap=desktop?button.left-table.right:button.top-table.bottom,size=innerWidth<=700?58:64;
    return Math.abs(gap-(desktop?24:20))<1&&button.width===size&&button.height===size
     &&(!desktop||Math.abs(button.bottom-(innerHeight-32))<1)
     &&button.left>=0&&button.right<=innerWidth&&document.documentElement.scrollWidth<=innerWidth;
