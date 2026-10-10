@@ -6,9 +6,14 @@
 @media(max-width:1100px){.filters{grid-template-columns:1fr 1fr 1.2fr}.presets{grid-column:1/3}.shell{padding-inline:24px}}
 @media(max-width:700px){.shell{padding:0 16px 108px}.masthead{flex-wrap:wrap;gap:0 15px;padding-top:20px}.brand img{width:115px}.masthead nav{order:3;flex-basis:100%;gap:24px}.masthead nav a{padding:15px 0}h1{font-size:31px}.panel{padding:17px}.filters{grid-template-columns:1fr 1fr}.filters>label:nth-child(3){grid-column:1/-1}.presets{grid-column:1/-1}.metrics{grid-template-columns:1fr 1fr;gap:10px}.metric p{font-size:clamp(26px,3.2vw,40px)}.charts{grid-template-columns:1fr}.section-heading{flex-wrap:wrap}.drawer{padding:24px 20px}.drawer-heading h2{font-size:22px}.metric h2{min-height:20px}.performances{padding:15px 10px}.performances h2{padding-left:7px}table{min-width:760px}.filters #show{grid-column:1/-1}}
 
-.add-entry-fab{position:fixed;right:max(32px,env(safe-area-inset-right));bottom:calc(32px + env(safe-area-inset-bottom));z-index:10;display:grid;place-items:center;width:68px;height:68px;min-height:68px;padding:0;border-radius:50%;box-shadow:0 6px 20px #0003}
+.earnings-shell{padding-bottom:52px}
+.earnings-actions{display:flex;justify-content:flex-end;margin-top:20px}
+.add-entry-fab{display:grid;place-items:center;width:64px;height:64px;min-height:64px;padding:0;border-radius:50%;box-shadow:0 4px 16px #0002}
 .add-entry-fab svg{display:block}
-@media(max-width:700px){.filters{margin-top:28px}.add-entry-fab{right:max(20px,env(safe-area-inset-right));bottom:calc(20px + env(safe-area-inset-bottom));width:58px;height:58px;min-height:58px}}
+/* Dock beside the report only when there is real room in the outer margin.
+   Narrow screens keep the action below the table, without covering its cells. */
+@media(min-width:1600px){.earnings-actions{position:relative;height:0;margin-top:0}.add-entry-fab{position:absolute;left:calc(100% + 20px);bottom:0}}
+@media(max-width:700px){.filters{margin-top:28px}.earnings-shell{padding-bottom:calc(32px + env(safe-area-inset-bottom))}.add-entry-fab{width:58px;height:58px;min-height:58px}}
 
 /* Typography follows the Visits panel; layouts stay specific to each page. */
 @media(max-width:760px){.metric p{font-size:32px}.masthead nav{font-size:14px}.masthead #logout{font-size:12px}.metric span,.metric .muted{font-size:12px}}

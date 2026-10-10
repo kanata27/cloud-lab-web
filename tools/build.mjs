@@ -12,6 +12,8 @@ export const publicFiles = [
   ["analytics.js", "analytics.js"],
   ...["index.html", "login.html", "dashboard.js", "login.js", "dashboard.css", "login.css", "earnings.html", "earnings.css", "earnings.js", "earnings-model.js", "date-filter.js", "date-filter.css", "insights.html", "insights.css", "insights.js", "insights-model.js", "panel-typography.css"]
     .map(name => [`statistics-panel/${name}`, `stat-panel/${name}`]),
+  ...["golos-text-cyrillic-ext-wght-normal.woff2", "golos-text-cyrillic-wght-normal.woff2", "golos-text-latin-ext-wght-normal.woff2", "golos-text-latin-wght-normal.woff2", "OFL-Golos-Text.txt"]
+    .map(name => [`statistics-panel/fonts/${name}`, `stat-panel/fonts/${name}`]),
   ...["apple-touch-icon.png", "favicon.ico", "favicon.svg", "hero.webp", "kanata-logo.svg", "og-image.jpg"]
     .map(name => [`assets/${name}`, `assets/${name}`]),
   ...["404.html", "robots.txt", "_redirects"].map(name => [`public/${name}`, name]),

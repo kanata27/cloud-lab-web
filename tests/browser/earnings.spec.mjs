@@ -15,6 +15,7 @@ test('earnings: create spot and mixed-currency entry, edit, filter, mobile and d
   await route.fulfill({json:result});
  });
  await page.goto('/stat-panel/earnings');await expect(page.locator('#empty')).toBeVisible();
+ await expect(page.locator('#spots-panel')).toBeHidden();
  await page.locator('#add-entry').click();await expect(page.locator('#entry-spot')).toBeDisabled();await page.locator('#entry-start').fill('14:20');await page.locator('#entry-end').fill('17:12');
  await page.locator('#new-spot').click();await page.locator('#spot-name').fill('Набережная');await page.locator('#save-spot').click();
  await expect(page.locator('#spot-dialog')).not.toBeVisible();
@@ -27,6 +28,7 @@ test('earnings: create spot and mixed-currency entry, edit, filter, mobile and d
  await expect(page.getByRole('textbox',{name:'Сумма USD',exact:true})).toHaveValue('2');
  await expect(page.locator('#estimate-total')).toContainText('315');await expect(page.locator('#estimate-hour')).toContainText('€/ч');
  await page.locator('#save-entry').click();await expect(page.locator('#entries-body tr')).toHaveCount(1);await expect(page.locator('#total-czk')).toHaveText('315 Kč');await expect(page.locator('#hour-eur')).toContainText('€/ч');
+ await expect(page.locator('#spots-panel')).toBeHidden();
  await expect(page.locator('#entries-body select')).toHaveCount(0);await page.locator('.entry-trigger').click();await page.getByRole('button',{name:'Изменить данные'}).click();
  await page.locator('#entry-end').fill('18:20');await page.locator('#save-entry').click();await expect(page.locator('#hour-czk')).toHaveText('78,8 Kč');
  await page.locator('#from').fill('2026-09-01');await page.locator('#to').fill('2026-09-02');await page.locator('#show').click();await expect(page.locator('#empty')).toBeVisible();
@@ -53,6 +55,7 @@ test('earnings: real spots only and hover names for one or several places',async
   await route.fulfill({json:url.pathname.endsWith('/spots')?{spots}:url.pathname.endsWith('/rates')?{...snapshot,requestedDate:url.searchParams.get('date')}:{entries:entries.filter(e=>!url.searchParams.get('spot')||e.spotId===url.searchParams.get('spot'))}});
  });
  await page.goto('/stat-panel/earnings');await expect(page.locator('#entries-body tr')).toHaveCount(4);
+ await expect(page.locator('#spots-panel')).toBeVisible();
  await expect(page.locator('#daily-chart .chart-bar title')).toHaveText(['Malostranské schody · Anděl','Anděl']);
  await page.getByRole('button',{name:'За час',exact:true}).click();
  await expect(page.locator('#daily-chart .chart-bar title')).toHaveText(['Malostranské schody · Anděl','Anděl']);
@@ -78,6 +81,8 @@ test('earnings: real spots only and hover names for one or several places',async
  await page.locator('#cancel-entry').click();
  await page.locator('#filter-spot').selectOption('spot-b');await page.locator('#show').click();
  await expect(page.locator('#entries-body tr')).toHaveCount(2);
+ // Registered spots, not active spots in the selected report, control visibility.
+ await expect(page.locator('#spots-panel')).toBeVisible();
  await expect(page.locator('#daily-chart .chart-bar title')).toHaveText(['Anděl','Anděl']);
  await page.locator('#add-entry').click();await expect(page.locator('#entry-spot')).toHaveValue('spot-b');
 });
@@ -91,7 +96,7 @@ test('earnings: full-width chart, rounded axes, compact spots and overnight disp
  let records=[{...model,...convert(model.amounts,snapshot),snapshot,id:'entry-a',version:1}];
  await page.route('**/earnings-api/**',async route=>{
   const url=new URL(route.request().url());
-  await route.fulfill({json:url.pathname.endsWith('/spots')?{spots:[spot]}:{entries:records}});
+  await route.fulfill({json:url.pathname.endsWith('/spots')?{spots:[spot,{id:'spot-b',name:'Anděl'}]}:{entries:records}});
  });
  await page.goto('/stat-panel/earnings');await expect(page.locator('#entries-body tr')).toHaveCount(1);
  await expect(page.getByRole('heading',{name:'Заработки',exact:true})).toHaveCount(0);
@@ -119,4 +124,53 @@ test('earnings: full-width chart, rounded axes, compact spots and overnight disp
  await page.locator('.entry-trigger').click();await page.getByRole('button',{name:'Изменить данные'}).click();
  await expect(page.locator('#next-day')).toBeChecked();
  await expect(page.locator('#duration')).toHaveText('17 ч 1 мин · время Праги');
+});
+
+test('earnings: spots comparison hides for zero or one place and updates after adding a second',async({page})=>{
+ await page.clock.setFixedTime(new Date('2026-10-10T09:00:00Z'));
+ await page.addInitScript(()=>sessionStorage.setItem('kanata_admin_token','test'));
+ let spots=[];
+ await page.route('**/earnings-api/**',async route=>{
+  const req=route.request(),url=new URL(req.url());let result;
+  if(url.pathname.endsWith('/spots')){
+   if(req.method()==='POST'){result={id:'spot-'+(spots.length+1),name:req.postDataJSON().name};spots.push(result);}
+   else result={spots};
+  }else if(url.pathname.endsWith('/rates'))result={requestedDate:url.searchParams.get('date'),rates:{CZK:1,EUR:25,USD:20}};
+  else result={entries:[]};
+  await route.fulfill({json:result});
+ });
+ await page.goto('/stat-panel/earnings');await expect(page.locator('#report')).toBeVisible();
+ await expect(page.locator('#spots-panel')).toBeHidden();
+ await page.locator('#add-entry').click();
+ for(const [name,visible] of [['Набережная',false],['Anděl',true]]){
+  await page.locator('#new-spot').click();await page.locator('#spot-name').fill(name);await page.locator('#save-spot').click();
+  await expect(page.locator('#spot-dialog')).toBeHidden();
+  // The entry drawer covers the report, so assert the hidden attribute directly.
+  await expect(page.locator('#spots-panel')).toHaveJSProperty('hidden',!visible);
+ }
+ page.once('dialog',dialog=>dialog.accept());
+ await page.locator('#cancel-entry').click();
+ await expect(page.locator('#entry-dialog')).toBeHidden();
+ await expect(page.locator('#spots-panel')).toBeVisible();
+ spots=spots.slice(0,1);await page.locator('#show').click();
+ await expect(page.locator('#spots-panel')).toBeHidden();
+});
+
+test('earnings: action follows the content with a 20px gap and readable rows',async({page})=>{
+ await page.clock.setFixedTime(new Date('2026-10-10T09:00:00Z'));
+ await page.addInitScript(()=>sessionStorage.setItem('kanata_admin_token','test'));
+ const model=validateEntry({date:'2026-10-04',spotId:'spot-a',start:'11:11',end:'12:12',nextDay:false,amounts:[{currency:'CZK',amount:'444'},{currency:'EUR',amount:'0'},{currency:'USD',amount:'0'}]});
+ const entry={...model,...convert(model.amounts,{rates:{CZK:1,EUR:25,USD:20}}),id:'entry-a',version:1};
+ await page.route('**/earnings-api/**',async route=>route.fulfill({json:new URL(route.request().url()).pathname.endsWith('/spots')?{spots:[{id:'spot-a',name:'Malostranské schody'}]}:{entries:[entry]}}));
+ await page.goto('/stat-panel/earnings');await expect(page.locator('#entries-body tr')).toHaveCount(1);
+ for(const width of [320,390,700,760,1000,1440,1599,1600,1920]){
+  await page.setViewportSize({width,height:900});
+  await expect.poll(()=>page.evaluate(()=>{
+   const table=document.querySelector('.performances').getBoundingClientRect(),button=document.querySelector('#add-entry').getBoundingClientRect();
+   const gap=innerWidth>=1600?button.left-table.right:button.top-table.bottom;
+   return Math.abs(gap-20)<1&&button.left>=0&&button.right<=innerWidth&&document.documentElement.scrollWidth<=innerWidth;
+  })).toBe(true);
+  expect(await page.locator('#entries-table').evaluate(el=>getComputedStyle(el).fontSize)).toBe('16px');
+ }
+ await page.locator('#add-entry').click();await expect(page.locator('#entry-dialog')).toBeVisible();
 });

@@ -102,6 +102,10 @@ function renderCharts(){
   });svg.append(svgNode('text',{x:left-10,y:14,'text-anchor':'end',class:'chart-label chart-unit'},chartMode==='sum'?'Kč':'Kč/ч'));host.append(svg);
  }
  const locationHost=$('spots-chart');locationHost.replaceChildren();
+ // Compare registered places, not just the places active in this report.
+ // A single registered place must not leave a panel or a grid gap behind.
+ $('spots-panel').hidden=spots.length<=1;
+ if($('spots-panel').hidden)return;
  const locationData=spots.map(spot=>({...spot,...summary(entries.filter(e=>e.spotId===spot.id))})).filter(s=>s.count).sort((a,b)=>b.hourCzk-a.hourCzk);
  if(!locationData.length)locationHost.append(node('p','Здесь будет сравнение точек.','muted'));
  const max=Math.max(1,...locationData.map(s=>s.hourCzk));
@@ -162,7 +166,7 @@ $('entry-form').addEventListener('submit',async event=>{
 });
 $('new-spot').addEventListener('click',()=>{$('spot-form').reset();errorAt('spot-error','');$('spot-dialog').showModal();$('spot-name').focus();});
 $('cancel-spot').addEventListener('click',()=>$('spot-dialog').close());
-$('spot-form').addEventListener('submit',async e=>{e.preventDefault();$('save-spot').disabled=true;try{const spot=await api('/spots',{method:'POST',body:JSON.stringify({name:$('spot-name').value})});if(!spots.some(s=>s.id===spot.id))spots.push(spot);populateSpots();$('entry-spot').value=spot.id;dirty=true;updateEstimate();$('spot-dialog').close();}catch(error){errorAt('spot-error',error.message);}finally{$('save-spot').disabled=false;}});
+$('spot-form').addEventListener('submit',async e=>{e.preventDefault();$('save-spot').disabled=true;try{const spot=await api('/spots',{method:'POST',body:JSON.stringify({name:$('spot-name').value})});if(!spots.some(s=>s.id===spot.id))spots.push(spot);populateSpots();renderCharts();$('entry-spot').value=spot.id;dirty=true;updateEstimate();$('spot-dialog').close();}catch(error){errorAt('spot-error',error.message);}finally{$('save-spot').disabled=false;}});
 $('cancel-delete').addEventListener('click',()=>$('delete-dialog').close());
 $('confirm-delete').addEventListener('click',async()=>{$('confirm-delete').disabled=true;try{await api(`/entries/${deleteTarget.id}`,{method:'DELETE',body:JSON.stringify({version:deleteTarget.version})});$('delete-dialog').close();await load();}catch(error){errorAt('delete-error',error.message);}finally{$('confirm-delete').disabled=false;}});
 document.querySelectorAll('[data-chart]').forEach(b=>b.addEventListener('click',()=>{chartMode=b.dataset.chart;document.querySelectorAll('[data-chart]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));renderCharts();}));
