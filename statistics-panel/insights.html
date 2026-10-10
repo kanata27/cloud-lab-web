@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta name="referrer" content="no-referrer">
+  <meta name="color-scheme" content="light dark">
+  <title>kanata · Инсайты</title>
+  <link rel="icon" href="/assets/favicon.svg">
+  <link rel="stylesheet" href="/stat-panel/earnings.css">
+  <link rel="stylesheet" href="/stat-panel/insights.css">
+  <script src="/site-config.js" defer></script>
+  <script type="module" src="/stat-panel/insights.js"></script>
+</head>
+<body>
+  <main class="shell insights-shell" id="app" hidden>
+    <header class="masthead">
+      <a class="brand" href="/" aria-label="Вернуться на главную страницу"><img src="/assets/kanata-logo.svg" alt="kanata" width="150" height="40"></a>
+      <nav aria-label="Панель управления"><a href="/stat-panel/">Посещения</a><a href="/stat-panel/earnings">Заработки</a><a href="/stat-panel/insights" aria-current="page">Инсайты</a></nav>
+      <button type="button" id="logout" class="quiet">Выйти</button>
+    </header>
+    <form id="filters" class="panel insights-filters" aria-label="Период отчёта">
+      <label>С<input type="date" id="from" required></label>
+      <label>По<input type="date" id="to" required></label>
+      <div class="insights-presets" role="group" aria-label="Быстрый выбор периода">
+        <button type="button" data-days="1" aria-pressed="false">Сегодня</button>
+        <button type="button" data-days="7" aria-pressed="false">Неделя</button>
+        <button type="button" data-days="30" aria-pressed="true">Месяц</button>
+        <button type="button" data-months="3" aria-pressed="false">3 месяца</button>
+      </div>
+      <button type="submit" class="primary" id="show">Показать</button>
+    </form>
+    <p id="message" class="message" role="status" hidden></p>
+    <section id="report" aria-label="Заработок и посещения за выбранный период" hidden>
+      <div class="metrics insights-metrics">
+        <article class="panel metric"><h2>Заработано</h2><p id="total-czk">—</p></article>
+        <article class="panel metric"><h2>В среднем за час</h2><p id="hour-czk">—</p></article>
+        <article class="panel metric"><h2>Просмотры</h2><p id="views-value">—</p></article>
+        <article class="panel metric"><h2>YouTube</h2><p id="youtube-value">—</p></article>
+        <article class="panel metric"><h2>Instagram</h2><p id="instagram-value">—</p></article>
+      </div>
+      <section class="panel insights-graph" aria-labelledby="insights-title">
+        <div class="insights-heading">
+          <h1 id="insights-title">Заработок и просмотры</h1>
+          <div class="insights-legend" aria-label="Обозначения графика"><span><i class="income-key" aria-hidden="true"></i>Заработок</span><span><i class="views-key" aria-hidden="true"></i>Просмотры</span></div>
+          <div class="insights-switch" role="group" aria-label="Группировка графика"><button type="button" data-group="days" aria-pressed="true">Дни</button><button type="button" data-group="weeks" aria-pressed="false">Недели</button></div>
+        </div>
+        <div id="insights-chart" class="insights-chart" tabindex="0" role="group" aria-label="График заработка и просмотров" aria-describedby="chart-help">
+          <div id="chart-tooltip" class="chart-tooltip" role="tooltip" hidden></div>
+        </div>
+        <p id="chart-help" class="sr-only">Для подробностей наведи на график или нажми на него. С клавиатуры используй стрелки влево и вправо, Home и End. Escape закрывает подсказку.</p>
+        <p id="chart-announcement" class="sr-only" aria-live="polite" aria-atomic="true"></p>
+      </section>
+    </section>
+    <noscript>Для просмотра статистики нужен JavaScript.</noscript>
+  </main>
+</body>
+</html>

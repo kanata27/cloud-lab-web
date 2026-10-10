@@ -1,0 +1,134 @@
+/* Shared date/period controls: matches the Visits panel. */
+.filter-panel,.calendar-dialog {
+  --bg:#eeece7; --surface:#faf9f6; --ink:#242724; --muted:#676a65;
+  --line:#d9dbd3; --accent:#557665; --accent-soft:#e7ede8;
+}
+:where(.filter-panel,.calendar-dialog) button {
+  min-height:44px; border:1px solid transparent; border-radius:8px;
+  padding:9px 20px; background:var(--ink); color:var(--surface); font-weight:600;
+}
+.filter-panel button.quiet,.calendar-dialog button.quiet {
+  background:transparent; color:var(--ink); border-color:var(--line); font-weight:500;
+}
+.filter-panel button[aria-pressed=true] { background:var(--ink); color:var(--surface); border-color:var(--ink); }
+.filter-panel input,.filter-panel select,.calendar-dialog select {
+  min-height:44px; padding:9px 12px; border:1px solid var(--line);
+  border-radius:8px; background:var(--surface); color:var(--ink);
+}
+.filter-panel button:hover:not(:disabled),.calendar-dialog button:hover:not(:disabled) { filter:brightness(.9); }
+.filter-panel .primary:hover { background:var(--ink); border-color:var(--ink); }
+.earnings-filters { margin-top:44px; }
+.filter-panel {
+  background:var(--surface);
+  padding:18px 20px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  margin-bottom:24px;
+}
+
+.filter-panel .presets {
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-bottom:16px;
+}
+
+.filter-panel .presets button {
+  min-height:38px;
+  padding:7px 16px;
+}
+
+.filter-fields {
+  display:grid;
+  grid-template-columns:1fr 1fr 1.15fr auto;
+  align-items:end;
+  gap:14px;
+}
+
+.filter-fields label {
+  display:grid;
+  gap:5px;
+  font-size:12px;
+}
+
+.filter-fields input,.filter-fields select {
+  font-size:16px;
+}
+
+.filter-note {
+  font-size:11px;
+  margin:10px 0 0;
+}
+
+.filter-toolbar { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:21px; }
+.mode-switch { display:inline-flex; gap:3px; padding:4px; background:var(--bg); border:1px solid var(--line); border-radius:10px; }
+.mode-switch button { background:transparent; color:var(--muted); min-height:36px; min-width:86px; padding:6px 18px; font-weight:500; border-radius:6px; }
+.mode-switch button[aria-pressed="true"] { background:var(--surface); color:var(--ink); border-color:var(--line); box-shadow:0 1px 3px #00000008; }
+.filter-toolbar .presets { margin:0; gap:6px; }
+.filter-toolbar .presets button { padding:7px 13px; font-size:13px; }
+.filter-fields { grid-template-columns:minmax(0,2fr) minmax(170px,1.15fr) auto; }
+.range-fields { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:14px; }
+.date-fields { min-width:0; }
+.field-label { display:block; font-size:12px; margin-bottom:5px; }
+.date-trigger { display:flex; align-items:center; justify-content:space-between; gap:14px; width:100%; min-height:44px; text-align:left; color:var(--ink); background:var(--surface); border:1px solid var(--line); padding:9px 12px; font-size:16px; font-weight:400; }
+.date-trigger-main { display:flex; gap:10px; align-items:center; min-width:0; }
+.date-trigger-main svg { flex:none; color:var(--muted); }
+.calendar-hint { flex:none; color:var(--muted); font-size:12px; }
+.date-trigger[aria-expanded="true"] { border-color:var(--accent); }
+.date-trigger:hover { background:var(--surface); }
+.calendar-dialog { width:min(382px,calc(100% - 32px)); max-height:calc(100dvh - 32px); overflow:auto; padding:23px; margin:auto; color:var(--ink); background:var(--surface); border:1px solid var(--line); border-radius:17px; box-shadow:0 20px 90px #00000026; }
+.calendar-dialog::backdrop { background:#151b1752; backdrop-filter:blur(3px); }
+.calendar-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:20px; }
+.calendar-heading h2 { font-size:18px; font-weight:500; margin:0; }
+.calendar-close { min-width:36px; min-height:36px; padding:0; font:26px/1 system-ui,sans-serif; color:var(--muted); background:transparent; border:0; }
+.calendar-navigation { display:flex; align-items:center; gap:7px; margin-bottom:20px; }
+.calendar-selects { display:flex; gap:5px; flex:1; min-width:0; }
+.calendar-selects select { padding:8px 5px; font-size:14px; min-height:40px; background:var(--surface); }
+#calendar-month { flex:1.4; } #calendar-year { flex:1; }
+.calendar-arrow { padding:0; min-width:32px; min-height:40px; color:var(--ink); background:transparent; font-size:25px; font-weight:400; }
+.calendar-weekdays,.calendar-days { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:3px; }
+.calendar-weekdays { margin-bottom:8px; color:var(--muted); text-align:center; font-size:11px; }
+.calendar-day { display:grid; place-items:center; padding:0; width:100%; aspect-ratio:1; min-height:0; border-radius:9px; background:transparent; color:var(--ink); font-weight:400; font-size:14px; position:relative; }
+.calendar-day:hover:not(:disabled) { background:var(--accent-soft); filter:none; }
+.calendar-day[aria-current="date"]::after { content:""; width:4px; height:4px; border-radius:50%; background:var(--accent); position:absolute; bottom:4px; }
+.calendar-day[aria-pressed="true"],.calendar-day[aria-pressed="true"]:hover { background:var(--ink); color:var(--surface); }
+.calendar-day[aria-pressed="true"][aria-current="date"]::after { background:var(--surface); }
+.calendar-day:disabled { opacity:.25; }
+.calendar-footer { border-top:1px solid var(--line); padding-top:16px; margin-top:18px; display:flex; gap:10px; align-items:center; justify-content:space-between; }
+.calendar-selection { color:var(--muted); font-size:11px; }
+.calendar-footer button { font-size:12px; min-height:36px; padding:6px 13px; }
+
+@media(prefers-color-scheme:dark) {
+  .filter-panel,.calendar-dialog {
+    --bg:#20231f; --surface:#282c27; --ink:#eeeee7; --muted:#b0b6aa;
+    --line:#42483e; --accent:#91b39b; --accent-soft:#343b32;
+  }
+}
+@media(max-width:760px) {
+  .filter-fields { grid-template-columns:minmax(0,1fr) auto; column-gap:10px; row-gap:14px; }
+  .date-fields { grid-column:1 / -1; }
+  .filter-fields > button { min-width:122px; min-height:48px; }
+  .filter-toolbar { gap:12px; }
+  .filter-panel { padding:16px; }
+  .filter-toolbar .presets { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; width:100%; }
+  .filter-toolbar .presets button { font-size:12px; padding:7px 6px; min-height:46px; }
+  .mode-switch { width:100%; }
+  .mode-switch button { flex:1; min-height:44px; font-size:14px; }
+  .filter-fields input,.filter-fields select,.date-trigger { min-height:48px; font-size:16px; }
+  .calendar-dialog { width:min(382px,calc(100% - 20px)); padding:19px; max-height:calc(100dvh - 20px); }
+  .calendar-day { min-height:44px; aspect-ratio:auto; }
+  .calendar-arrow,.calendar-close,.calendar-footer button { min-height:44px; }
+  .calendar-arrow { min-width:34px; }
+  .calendar-selects select { min-height:44px; font-size:16px; }
+  .earnings-filters { margin-top:28px; }
+}
+@media(max-width:380px) {
+  .filter-panel { padding:13px; }
+  .calendar-dialog { padding:15px; }
+  .calendar-navigation { gap:3px; }
+  .calendar-arrow { min-width:28px; }
+  .calendar-hint { display:none; }
+  .filter-toolbar .presets button { padding:7px 5px; font-size:11px; }
+  .range-fields { gap:9px; }
+  .filter-fields > button { min-width:106px; }
+}

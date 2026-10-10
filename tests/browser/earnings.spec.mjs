@@ -30,7 +30,7 @@ test('earnings: create spot and mixed-currency entry, edit, filter, mobile and d
  await expect(page.locator('#entries-body select')).toHaveCount(0);await page.locator('.entry-trigger').click();await page.getByRole('button',{name:'Изменить данные'}).click();
  await page.locator('#entry-end').fill('18:20');await page.locator('#save-entry').click();await expect(page.locator('#hour-czk')).toHaveText('78,8 Kč');
  await page.locator('#from').fill('2026-09-01');await page.locator('#to').fill('2026-09-02');await page.locator('#show').click();await expect(page.locator('#empty')).toBeVisible();
- await page.getByRole('button',{name:'Месяц',exact:true}).click();await expect(page.locator('#entries-body tr')).toHaveCount(1);
+ await page.getByRole('button',{name:'Последний месяц',exact:true}).click();await expect(page.locator('#entries-body tr')).toHaveCount(1);
  for(const width of [320,390,1440]){
   await page.setViewportSize({width,height:844});
   await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);

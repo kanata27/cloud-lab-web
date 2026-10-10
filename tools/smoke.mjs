@@ -14,7 +14,7 @@ async function read(url, options = {}) {
   }
   throw lastError;
 }
-for (const path of ["/", "/?q=migration-check", "/assets/hero.webp", "/site-config.js", "/stat-panel/login.html", "/stat-panel/index.html", "/stat-panel/earnings", "/stat-panel/earnings.js"]) {
+for (const path of ["/", "/?q=migration-check", "/assets/hero.webp", "/site-config.js", "/stat-panel/login.html", "/stat-panel/index.html", "/stat-panel/earnings", "/stat-panel/earnings.js", "/stat-panel/insights", "/stat-panel/insights.js", "/stat-panel/date-filter.js"]) {
   const response = await read(origin + path);
   assert.equal(response.status, 200, `HTTP error on ${path}`);
   assert.equal(new URL(response.url).origin, origin, "Unexpected cross-origin redirect");
