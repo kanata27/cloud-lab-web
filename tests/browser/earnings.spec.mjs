@@ -41,7 +41,7 @@ test('earnings: create spot and mixed-currency entry, edit, filter, mobile and d
  await page.locator('.entry-trigger').click();await page.getByRole('button',{name:'Удалить запись',exact:true}).click();await page.locator('#confirm-delete').click();await expect(page.locator('#empty')).toBeVisible();
  expect(await page.evaluate(()=>window.violations)).toEqual([]);
 });
-test('earnings: real spots only and hover names for one or several places',async({page})=>{
+test('earnings: real spots only and hover duration and names for one or several places',async({page})=>{
  await page.clock.setFixedTime(new Date('2026-10-09T20:00:00Z'));
  await page.addInitScript(()=>sessionStorage.setItem('kanata_admin_token','test'));
  const spots=[{id:'spot-a',name:'Malostranské schody'},{id:'spot-b',name:'Anděl'}];
@@ -56,9 +56,9 @@ test('earnings: real spots only and hover names for one or several places',async
  });
  await page.goto('/stat-panel/earnings');await expect(page.locator('#entries-body tr')).toHaveCount(4);
  await expect(page.locator('#spots-panel')).toBeVisible();
- await expect(page.locator('#daily-chart .chart-bar title')).toHaveText(['Malostranské schody · Anděl','Anděl']);
+ await expect(page.locator('#daily-chart .chart-bar title')).toHaveText(['8ч 36м | Malostranské schody · Anděl','2ч 52м | Anděl']);
  await page.getByRole('button',{name:'За час',exact:true}).click();
- await expect(page.locator('#daily-chart .chart-bar title')).toHaveText(['Malostranské schody · Anděl','Anděl']);
+ await expect(page.locator('#daily-chart .chart-bar title')).toHaveText(['8ч 36м | Malostranské schody · Anděl','2ч 52м | Anděl']);
  for(const width of [320,390,1440]){
   await page.setViewportSize({width,height:1000});
   const trigger=page.locator('.entry-trigger').first();await trigger.scrollIntoViewIfNeeded();
@@ -83,7 +83,7 @@ test('earnings: real spots only and hover names for one or several places',async
  await expect(page.locator('#entries-body tr')).toHaveCount(2);
  // Registered spots, not active spots in the selected report, control visibility.
  await expect(page.locator('#spots-panel')).toBeVisible();
- await expect(page.locator('#daily-chart .chart-bar title')).toHaveText(['Anděl','Anděl']);
+ await expect(page.locator('#daily-chart .chart-bar title')).toHaveText(['2ч 52м | Anděl','2ч 52м | Anděl']);
  await page.locator('#add-entry').click();await expect(page.locator('#entry-spot')).toHaveValue('spot-b');
 });
 test('earnings requires a session',async({page})=>{await page.goto('/stat-panel/earnings');await expect(page).toHaveURL(/login/);});
