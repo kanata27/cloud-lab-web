@@ -48,3 +48,15 @@
 /* Typography follows the Visits panel; layouts stay specific to each page. */
 @media(max-width:760px){.metric p{font-size:32px}.masthead nav{font-size:14px}.masthead #logout{font-size:12px}.metric span,.metric .muted{font-size:12px}}
 @media(max-width:380px){.metric p{font-size:30px}}
+
+/* Give the desktop entry form more room; keep the touch layout unchanged. */
+@media(min-width:1000px){
+ .drawer{width:min(700px,100%);padding:36px;font-size:16px}
+ .drawer :is(label,.spot-field){font-size:14px;gap:8px}
+ .drawer :is(input,select,button):not(.icon-button){font-size:16px;line-height:1.5}
+ .drawer .muted{font-size:13px}
+ .drawer-heading h2{font-size:26px}
+ .drawer h3{font-size:18px}
+ .drawer .two-columns{gap:20px}
+ .drawer .estimate strong{font-size:26px}
+}
