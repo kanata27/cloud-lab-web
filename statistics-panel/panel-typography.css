@@ -50,9 +50,53 @@ body.panel-page {
 }
 
 body.panel-page :is(button,input,select,textarea) { font-family:var(--panel-font); font-weight:400; }
-body.panel-page .masthead nav { font-size:17px; line-height:1.5; }
-body.panel-page .masthead nav a { font-weight:500; letter-spacing:normal; }
+/* Keep tab baselines and the active underline identical on all three pages. */
+body.panel-page .stats-shell { padding-top:0; }
+body.panel-page .masthead {
+  display:flex;
+  align-items:center;
+  gap:40px;
+  min-height:96px;
+  padding:0;
+  margin-bottom:0;
+  border-bottom:1px solid var(--line);
+}
+body.panel-page .masthead :is(.brand,.wordmark) { display:flex; line-height:0; }
+body.panel-page .masthead :is(.brand,.wordmark) img { display:block; width:150px; height:auto; }
+body.panel-page .masthead nav {
+  display:flex;
+  align-self:stretch;
+  align-items:stretch;
+  flex-wrap:wrap;
+  gap:0 26px;
+  min-width:0;
+  padding:0;
+  font-size:17px;
+  line-height:1.5;
+}
+body.panel-page .masthead nav a {
+  position:relative;
+  display:flex;
+  align-items:center;
+  min-height:58px;
+  padding:24px 0 0;
+  border:0;
+  color:inherit;
+  text-decoration:none;
+  white-space:nowrap;
+  font-weight:500;
+  letter-spacing:normal;
+}
+body.panel-page .masthead nav a::after {
+  content:"";
+  position:absolute;
+  inset:auto 0 -1px;
+  height:2px;
+  background:transparent;
+}
+body.panel-page .masthead nav a[aria-current="page"]::after { background:#63816f; }
 body.panel-page .masthead #logout { font-size:13px; font-weight:400; line-height:1.5; }
+body.panel-page .stats-shell #filters { margin-top:44px; }
 
 body.panel-page :is(.panel > h2,.panel-heading h2,.section-heading h2,.insights-heading h1) {
   font-family:var(--panel-font);
@@ -130,15 +174,48 @@ body.panel-page .performances .entry-trigger { font-size:24px; }
 
 @media(prefers-color-scheme:dark) {
   body.panel-page { --panel-type-ink:#eceee7; --panel-type-muted:#adb4ad; --panel-type-surface:#252927; }
+  body.panel-page .masthead nav a[aria-current="page"]::after { background:#91b39b; }
+}
+@media(max-width:999px) {
+  body.panel-page .masthead {
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    column-gap:12px;
+    row-gap:8px;
+    padding-top:20px;
+  }
+  body.panel-page .masthead :is(.brand,.wordmark) { grid-column:1; grid-row:1; width:auto; }
+  body.panel-page .masthead #logout { grid-column:2; grid-row:1; justify-self:end; margin-left:0; }
+  body.panel-page .masthead nav { grid-column:1/-1; grid-row:2; flex-basis:auto; }
+  body.panel-page .masthead nav a { padding:8px 0 0; }
+  body.panel-page .earnings-shell .masthead nav { padding-right:56px; }
+  body.panel-page .earnings-shell .add-entry-fab { margin-top:11px; }
 }
 @media(max-width:760px) {
-  body.panel-page .masthead nav { font-size:16px; gap:clamp(12px,3vw,24px); }
+  body.panel-page .masthead :is(.brand,.wordmark) img { width:115px; }
+  body.panel-page .masthead nav { font-size:16px; gap:0 clamp(12px,3vw,24px); }
   body.panel-page .masthead #logout { font-size:12px; }
+  body.panel-page .stats-shell #filters { margin-top:28px; }
+  /* Native iOS date controls must stay inside their own grid column. */
+  body.panel-page .range-fields { grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; }
+  body.panel-page .range-fields label { min-width:0; }
+  body.panel-page .range-fields input {
+    display:block;
+    width:100%;
+    min-width:0;
+    max-width:100%;
+    min-height:48px;
+    padding-inline:8px;
+    -webkit-appearance:none;
+    appearance:none;
+  }
+  body.panel-page .range-fields input::-webkit-date-and-time-value { min-width:0; text-align:center; }
   body.panel-page :is(.metric-value,.metric p) { font-size:32px; }
   body.panel-page :is(.metric > span,.metric .muted) { font-size:12px; }
   body.panel-page :is(.filter-toolbar .presets button,.insights-presets button) { font-size:12px; }
 }
 @media(max-width:380px) {
+  body.panel-page .range-fields { grid-template-columns:minmax(0,1fr); gap:14px; }
   body.panel-page :is(.metric-value,.metric p) { font-size:30px; }
   body.panel-page :is(.filter-toolbar .presets button,.insights-presets button) { font-size:11px; }
 }

@@ -8,13 +8,14 @@
   <meta name="color-scheme" content="light dark">
   <title>Инсайты</title>
   <link rel="icon" href="/assets/favicon.svg">
-  <link rel="stylesheet" href="/stat-panel/earnings.css?v=20261010-5">
-  <link rel="stylesheet" href="/stat-panel/insights.css?v=20261010-1">
+  <link rel="stylesheet" href="/stat-panel/earnings.css?v=20261010-6">
+  <link rel="stylesheet" href="/stat-panel/date-filter.css">
+  <link rel="stylesheet" href="/stat-panel/insights.css?v=20261010-2">
   <script src="/site-config.js" defer></script>
   <script type="module" src="/stat-panel/insights.js"></script>
   <link rel="preload" href="/stat-panel/fonts/golos-text-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/stat-panel/fonts/golos-text-cyrillic-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="/stat-panel/panel-typography.css?v=20261010-2">
+  <link rel="stylesheet" href="/stat-panel/panel-typography.css?v=20261010-3">
 </head>
 <body class="panel-page">
   <main class="shell insights-shell" id="app" hidden>
@@ -23,16 +24,36 @@
       <nav aria-label="Панель управления"><a href="/stat-panel/earnings">Заработки</a><a href="/stat-panel/insights" aria-current="page">Инсайты</a><a href="/stat-panel/">Посещения</a></nav>
       <button type="button" id="logout" class="quiet">Выйти</button>
     </header>
-    <form id="filters" class="panel insights-filters" aria-label="Период отчёта">
-      <label>С<input type="date" id="from" required></label>
-      <label>По<input type="date" id="to" required></label>
-      <div class="insights-presets" role="group" aria-label="Быстрый выбор периода">
-        <button type="button" data-days="1" aria-pressed="false">Сегодня</button>
-        <button type="button" data-days="7" aria-pressed="false">Неделя</button>
-        <button type="button" data-days="30" aria-pressed="true">Месяц</button>
-        <button type="button" data-months="3" aria-pressed="false">3 месяца</button>
+    <form id="filters" class="filter-panel insights-filters" aria-label="Дата или период отчёта">
+      <div class="filter-toolbar">
+        <div class="mode-switch" role="group" aria-label="Выбор даты или периода">
+          <button type="button" data-mode="day" aria-pressed="false">Дата</button>
+          <button type="button" data-mode="period" aria-pressed="true">Период</button>
+        </div>
+        <div class="presets" role="group" aria-label="Быстрый выбор периода">
+          <button type="button" class="quiet" data-days="1" aria-pressed="false">Сегодня</button>
+          <button type="button" class="quiet" data-days="7" aria-pressed="false">Неделя</button>
+          <button type="button" class="quiet" data-days="30" aria-pressed="true">Месяц</button>
+          <button type="button" class="quiet" data-months="3" aria-pressed="false">3 месяца</button>
+        </div>
       </div>
-      <button type="submit" class="primary" id="show">Показать</button>
+      <div class="filter-fields">
+        <div class="date-fields">
+          <div id="range-fields" class="range-fields">
+            <label>С<input type="date" id="from" required></label>
+            <label>По<input type="date" id="to" required></label>
+          </div>
+          <div id="single-date-field" hidden>
+            <span id="date-label" class="field-label">Дата</span>
+            <button type="button" id="open-calendar" class="date-trigger" aria-labelledby="date-label date-value" aria-haspopup="dialog" aria-controls="date-calendar" aria-expanded="false">
+              <span class="date-trigger-main"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 2v6M17 2v6M3 11h18M7 15h3M14 15h3"/></svg><span id="date-value"></span></span>
+              <span class="calendar-hint">Выбрать <span aria-hidden="true">⌄</span></span>
+            </button>
+          </div>
+        </div>
+        <button type="submit" class="primary" id="show">Показать</button>
+      </div>
+      <p class="filter-note muted"><span id="range-note">До года за запрос</span> · время UTC</p>
     </form>
     <p id="message" class="message" role="status" hidden></p>
     <section id="report" aria-label="Заработок и посещения за выбранный период" hidden>
@@ -58,5 +79,16 @@
     </section>
     <noscript>Для просмотра статистики нужен JavaScript.</noscript>
   </main>
+  <dialog id="date-calendar" class="calendar-dialog" aria-labelledby="calendar-title">
+    <div class="calendar-heading"><h2 id="calendar-title">Выбрать дату</h2><button type="button" id="calendar-close" class="calendar-close" aria-label="Закрыть календарь">×</button></div>
+    <div class="calendar-navigation">
+      <button type="button" id="calendar-prev" class="calendar-arrow" aria-label="Предыдущий месяц">‹</button>
+      <div class="calendar-selects"><label class="sr-only" for="calendar-month">Месяц</label><select id="calendar-month"></select><label class="sr-only" for="calendar-year">Год</label><select id="calendar-year"></select></div>
+      <button type="button" id="calendar-next" class="calendar-arrow" aria-label="Следующий месяц">›</button>
+    </div>
+    <div class="calendar-weekdays" aria-hidden="true"><span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span></div>
+    <div id="calendar-days" class="calendar-days" role="group" aria-label="Дни месяца"></div>
+    <div class="calendar-footer"><span class="calendar-selection" id="calendar-selection"></span><button type="button" id="calendar-today" class="quiet">Сегодня</button></div>
+  </dialog>
 </body>
 </html>

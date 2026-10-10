@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow,noarchive"><meta name="color-scheme" content="light dark">
-<title>Заработки</title><link rel="icon" href="/assets/favicon.svg"><link rel="stylesheet" href="/stat-panel/earnings.css?v=20261010-5"><link rel="stylesheet" href="/stat-panel/date-filter.css">
-<script src="/site-config.js" defer></script><script type="module" src="/stat-panel/earnings.js?v=20261010-2"></script>
+<title>Заработки</title><link rel="icon" href="/assets/favicon.svg"><link rel="stylesheet" href="/stat-panel/earnings.css?v=20261010-6"><link rel="stylesheet" href="/stat-panel/date-filter.css">
+<script src="/site-config.js" defer></script><script type="module" src="/stat-panel/earnings.js?v=20261010-3"></script>
   <link rel="preload" href="/stat-panel/fonts/golos-text-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/stat-panel/fonts/golos-text-cyrillic-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="/stat-panel/panel-typography.css?v=20261010-2">
+  <link rel="stylesheet" href="/stat-panel/panel-typography.css?v=20261010-3">
 </head>
 <body class="panel-page">
 <main class="shell earnings-shell" id="app" hidden>
@@ -57,7 +57,15 @@
 <label>Дата<input id="entry-date" name="date" type="date" required></label>
 <div class="two-columns"><label>Начало<input id="entry-start" name="start" type="time" required></label><label>Конец<input id="entry-end" name="end" type="time" required></label></div>
 <label class="check"><input id="next-day" type="checkbox">Окончание на следующий день</label><p class="muted" id="duration">Время Праги</p>
-<label>Точка<select id="entry-spot" required></select></label><button id="new-spot" type="button" class="new-spot">＋ Новая точка</button>
+<div class="spot-field">
+  <span id="entry-spot-label">Точка</span>
+  <select id="entry-spot" required hidden tabindex="-1" aria-hidden="true"></select>
+  <button id="open-spots" type="button" class="spot-picker-trigger" aria-labelledby="entry-spot-label entry-spot-value" aria-haspopup="dialog" aria-controls="spot-picker-menu" aria-expanded="false" popovertarget="spot-picker-menu" disabled>
+    <span id="entry-spot-value">Пока нет точек</span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+  </button>
+  <div id="spot-picker-menu" class="spot-picker-menu" popover="auto" role="dialog" aria-label="Выбор точки"><div id="spot-options"></div></div>
+</div>
+<button id="new-spot" type="button" class="new-spot">＋ Новая точка</button>
 <h3>Получено</h3><div id="amounts"></div><button type="button" id="add-currency">＋ Добавить валюту</button>
 <div id="estimate" class="estimate" aria-live="polite"><span>Итого</span><strong id="estimate-total">—</strong><span id="estimate-hour">—</span></div>
 <p id="form-error" class="message error" role="alert" hidden></p>

@@ -8,7 +8,7 @@ test('all three panels load the same versioned Golos Text stylesheet last',async
  for(const page of ['index.html','earnings.html','insights.html']){
   const html=await readFile(join(projectRoot,'statistics-panel',page),'utf8');
   const styles=[...html.matchAll(/<link\b[^>]*rel="stylesheet"[^>]*>/g)].map(([tag])=>tag);
-  assert.match(styles.at(-1),/panel-typography\.css\?v=20261010-2/);
+  assert.match(styles.at(-1),/panel-typography\.css\?v=20261010-3/);
   assert.match(html,/<body class="panel-page">/);
   assert.match(html,/golos-text-cyrillic-wght-normal\.woff2/);
   assert.match(html,/golos-text-latin-wght-normal\.woff2/);

@@ -87,6 +87,65 @@ test('earnings: real spots only and hover names for one or several places',async
  await page.locator('#add-entry').click();await expect(page.locator('#entry-spot')).toHaveValue('spot-b');
 });
 test('earnings requires a session',async({page})=>{await page.goto('/stat-panel/earnings');await expect(page).toHaveURL(/login/);});
+test('earnings: pencil renames a spot, handles conflicts and preserves the unsaved entry and history',async({page})=>{
+ await page.clock.setFixedTime(new Date('2026-10-10T09:00:00Z'));
+ await page.addInitScript(()=>{sessionStorage.setItem('kanata_admin_token','test');window.violations=[];document.addEventListener('securitypolicyviolation',e=>window.violations.push(e.violatedDirective));});
+ const spots=[{id:'spot-a',name:'Malostranké schody'},{id:'spot-b',name:'Anděl'}],renames=[];
+ const snapshot={requestedDate:'2026-10-04',rates:{CZK:1,EUR:25,USD:20}};
+ const model=validateEntry({date:'2026-10-04',spotId:'spot-a',start:'11:00',end:'12:00',nextDay:false,amounts:[{currency:'CZK',amount:'444'},{currency:'EUR',amount:'0'},{currency:'USD',amount:'0'}]});
+ const entry={...model,...convert(model.amounts,snapshot),snapshot,id:'entry-a',version:1};
+ await page.route('**/earnings-api/**',async route=>{
+  const req=route.request(),url=new URL(req.url());
+  if(req.method()==='PUT'&&url.pathname.includes('/spots/')){
+   const id=url.pathname.split('/').at(-1),data=req.postDataJSON();renames.push({id,data});
+   if(spots.some(spot=>spot.id!==id&&spot.name===data.name))return route.fulfill({status:409,json:{error:'Точка с таким названием уже существует.'}});
+   await new Promise(resolve=>setTimeout(resolve,250));
+   const spot=spots.find(item=>item.id===id);spot.name=data.name.trim();return route.fulfill({json:spot});
+  }
+  expect(req.method()).toBe('GET');
+  await route.fulfill({json:url.pathname.endsWith('/spots')?{spots}:url.pathname.endsWith('/rates')?{...snapshot,requestedDate:url.searchParams.get('date')}:{entries:[entry]}});
+ });
+ await page.goto('/stat-panel/earnings');await expect(page.locator('#entries-body')).toContainText('Malostranké schody');
+ await page.locator('#add-entry').click();
+ await page.locator('#entry-start').fill('14:20');await page.locator('#entry-end').fill('17:12');
+ await page.getByRole('textbox',{name:'Сумма CZK',exact:true}).fill('220');
+ await page.locator('#open-spots').focus();await page.keyboard.press('ArrowDown');
+ await expect(page.locator('#spot-picker-menu')).toBeVisible();
+ await expect(page.locator('.spot-edit')).toHaveCount(2);
+ await page.keyboard.press('End');await page.keyboard.press('Enter');
+ await expect(page.locator('#entry-spot')).toHaveValue('spot-b');
+ await expect(page.locator('#entry-spot-value')).toHaveText('Anděl');
+ await page.locator('#open-spots').click();
+ await page.getByRole('button',{name:'Изменить название точки «Malostranké schody»',exact:true}).click();
+ await expect(page.locator('#spot-picker-menu')).toBeHidden();
+ await expect(page.locator('#spot-title')).toHaveText('Изменить название точки');
+ await expect(page.locator('#spot-name')).toHaveValue('Malostranké schody');
+ await page.locator('#spot-name').fill('Anděl');await page.locator('#save-spot').click();
+ await expect(page.locator('#spot-error')).toContainText('уже существует');
+ await expect(page.locator('#spot-dialog')).toBeVisible();await expect(page.locator('#save-spot')).toBeEnabled();
+ await page.locator('#spot-name').fill('Malostranské schody');await page.locator('#save-spot').click();
+ await expect(page.locator('#cancel-spot')).toBeDisabled();await page.keyboard.press('Escape');
+ await expect(page.locator('#spot-dialog')).toBeVisible();
+ await expect(page.locator('#spot-dialog')).toBeHidden();
+ await expect(page.locator('#open-spots')).toBeFocused();
+ await expect(page.locator('#entry-spot')).toHaveValue('spot-b');
+ await expect(page.locator('#entry-start')).toHaveValue('14:20');await expect(page.locator('#entry-end')).toHaveValue('17:12');
+ await expect(page.getByRole('textbox',{name:'Сумма CZK',exact:true})).toHaveValue('220');
+ await expect(page.locator('#entry-spot option')).toHaveText(['Malostranské schody','Anděl']);
+ expect(renames).toEqual([{id:'spot-a',data:{name:'Anděl'}},{id:'spot-a',data:{name:'Malostranské schody'}}]);
+ await page.locator('#open-spots').click();
+ await page.getByRole('button',{name:'Изменить название точки «Anděl»',exact:true}).click();
+ await page.locator('#spot-name').fill('Cancelled');await page.keyboard.press('Escape');
+ await expect(page.locator('#spot-dialog')).toBeHidden();
+ await expect(page.locator('#entry-spot-value')).toHaveText('Anděl');expect(renames).toHaveLength(2);
+ page.once('dialog',dialog=>dialog.accept());await page.locator('#cancel-entry').click();
+ await expect(page.locator('#entries-body')).toContainText('Malostranské schody');
+ await expect(page.locator('#filter-spot option')).toHaveText(['Все точки','Malostranské schody','Anděl']);
+ await expect(page.locator('#total-czk')).toHaveText('444 Kč');
+ await page.reload();await expect(page.locator('#entries-body')).toContainText('Malostranské schody');
+ expect(entry.spotId).toBe('spot-a');expect(entry.version).toBe(1);
+ expect(await page.evaluate(()=>window.violations)).toEqual([]);
+});
 test('earnings: full-width chart, rounded axes, compact spots and overnight display',async({page})=>{
  await page.clock.setFixedTime(new Date('2026-10-09T20:00:00Z'));
  await page.addInitScript(()=>sessionStorage.setItem('kanata_admin_token','test'));

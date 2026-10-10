@@ -126,6 +126,47 @@ test('earnings copies Visits date/period controls, restores range and queries th
   expect(await page.evaluate(() => window.violations)).toEqual([]);
 });
 
+test('insights selects a past day in the shared calendar and restores the exact three-month range', async ({page}) => {
+  const seen = await mockAPIs(page, {entries: [earning('2026-10-03')]});
+  await page.goto('/stat-panel/insights');
+  await expect(page.locator('#views-value')).toHaveText('240');
+  await expect(page.locator('[data-mode="period"]')).toHaveAttribute('aria-pressed', 'true');
+  await page.locator('[data-months="3"]').click();
+  await expect(page.locator('#from')).toHaveValue('2026-07-10');
+  await expect(page.locator('#to')).toHaveValue('2026-10-09');
+  await expect(page.locator('#views-value')).toHaveText('736');
+  await page.locator('[data-mode="day"]').click();
+  await expect(page.locator('#date-calendar')).toBeVisible();
+  await expect(page.locator('[data-date="2026-10-10"]')).toBeDisabled();
+  await page.locator('[data-date="2026-10-03"]').click();
+  await expect(page.locator('#date-calendar')).toBeHidden();
+  await expect(page.locator('#open-calendar')).toBeFocused();
+  await expect(page.locator('#date-value')).toContainText('3 октября 2026');
+  await expect(page.locator('#range-fields')).toBeHidden();
+  await expect(page.locator('#from')).toBeDisabled();
+  await expect(page.locator('#from')).toHaveValue('2026-10-03');
+  await expect(page.locator('#to')).toHaveValue('2026-10-03');
+  await expect(page.locator('#views-value')).toHaveText('8');
+  await expect(page.locator('#total-czk')).toHaveText('220 Kč');
+  expect(seen.at(-1)).toEqual({from:'2026-10-03',to:'2026-10-03',source:'all'});
+  await page.locator('#open-calendar').click();
+  await page.locator('#calendar-month').selectOption('8');
+  await page.locator('[data-date="2026-09-12"]').click();
+  await expect(page.locator('#date-value')).toContainText('12 сентября');
+  await expect(page.locator('#total-czk')).toHaveText('0 Kč');
+  await page.locator('[data-mode="period"]').click();
+  await expect(page.locator('#from')).toBeEnabled();
+  await expect(page.locator('#from')).toHaveValue('2026-07-10');
+  await expect(page.locator('#to')).toHaveValue('2026-10-09');
+  await expect(page.locator('[data-months="3"]')).toHaveAttribute('aria-pressed','true');
+  await expect(page.locator('#views-value')).toHaveText('736');
+  await page.locator('[data-days="1"]').click();
+  await expect(page.locator('[data-mode="day"]')).toHaveAttribute('aria-pressed','true');
+  await expect(page.locator('#date-value')).toContainText('9 октября');
+  await expect(page.locator('#views-value')).toHaveText('8');
+  expect(await page.evaluate(()=>window.violations)).toEqual([]);
+});
+
 for (const failure of ['traffic', 'earnings']) test(`insights hides the combined report on ${failure} errors`, async ({page}) => {
   await mockAPIs(page, {failure});
   await page.goto('/stat-panel/insights');

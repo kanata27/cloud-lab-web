@@ -38,6 +38,22 @@ test('authenticated persistent CRUD, server conversion, snapshots, conflicts, fi
   assert.equal((await call('/entries/record-1','PUT',{...input,version:1})).status,409);
   assert.equal((await call('/entries?from=2026-09-01&to=2026-09-30')).data.entries.length,1);
   assert.equal((await call('/entries?from=2026-09-01&to=2026-09-30&spot=another')).data.entries.length,0);
+  const originalSpot=sqlite.prepare('SELECT * FROM earnings_spots WHERE id=?').get(spot.id);
+  await call('/spots','POST',{name:'Anděl'});
+  assert.equal((await call('/spots/'+spot.id,'PUT',{name:'Unauthorized'},'bad')).status,401);
+  const renamed=await call('/spots/'+spot.id,'PUT',{name:'  Malostranské schody  '});
+  assert.deepEqual(renamed,{status:200,data:{id:spot.id,name:'Malostranské schody'}});
+  const storedSpot=sqlite.prepare('SELECT * FROM earnings_spots WHERE id=?').get(spot.id);
+  assert.equal(storedSpot.created_at,originalSpot.created_at);
+  assert.equal(storedSpot.name_key,'malostranské schody');
+  const history=(await call('/entries?from=2026-09-01&to=2026-09-30&spot='+spot.id)).data.entries;
+  assert.deepEqual(history,[edited.data]); // A rename must not rewrite money, rates or entry versions.
+  assert.equal((await call('/spots/'+spot.id,'PUT',{name:'Malostranské Schody'})).status,200);
+  assert.equal((await call('/spots/'+spot.id,'PUT',{name:'ande\u030cl'})).status,409);
+  for(const name of ['', 'a'.repeat(81), 'Bad\nName'])assert.equal((await call('/spots/'+spot.id,'PUT',{name})).status,400);
+  assert.equal((await call('/spots/missing-spot','PUT',{name:'Missing'})).status,404);
+  assert.equal((await call('/spots')).data.spots.find(item=>item.id===spot.id).name,'Malostranské Schody');
+  assert.equal(sqlite.prepare('SELECT COUNT(*) AS count FROM earnings_spots').get().count,2);
   authDown=true;assert.equal((await call('/spots')).status,503);authDown=false;
   assert.equal((await call('/entries/record-1','DELETE',{version:1})).status,409);
   assert.equal((await call('/entries/record-1','DELETE',{version:2})).status,200);
