@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow,noarchive"><meta name="color-scheme" content="light dark">
-<title>Заработки</title><link rel="icon" href="/assets/favicon.svg"><link rel="stylesheet" href="/stat-panel/earnings.css?v=20261010-4"><link rel="stylesheet" href="/stat-panel/date-filter.css">
+<title>Заработки</title><link rel="icon" href="/assets/favicon.svg"><link rel="stylesheet" href="/stat-panel/earnings.css?v=20261010-5"><link rel="stylesheet" href="/stat-panel/date-filter.css">
 <script src="/site-config.js" defer></script><script type="module" src="/stat-panel/earnings.js?v=20261010-2"></script>
   <link rel="preload" href="/stat-panel/fonts/golos-text-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/stat-panel/fonts/golos-text-cyrillic-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
@@ -11,7 +11,9 @@
 </head>
 <body class="panel-page">
 <main class="shell earnings-shell" id="app" hidden>
-<header class="masthead"><a class="brand" href="/"><img src="/assets/kanata-logo.svg" alt="kanata" width="150" height="40"></a><nav aria-label="Панель управления"><a href="/stat-panel/earnings.html" aria-current="page">Заработки</a><a href="/stat-panel/insights">Инсайты</a><a href="/stat-panel/">Посещения</a></nav><button id="logout" class="quiet">Выйти</button></header>
+<header class="masthead"><a class="brand" href="/"><img src="/assets/kanata-logo.svg" alt="kanata" width="150" height="40"></a><nav aria-label="Панель управления"><a href="/stat-panel/earnings.html" aria-current="page">Заработки</a><a href="/stat-panel/insights">Инсайты</a><a href="/stat-panel/">Посещения</a></nav><button id="logout" class="quiet">Выйти</button>
+<div class="earnings-actions"><button id="add-entry" class="primary add-entry-fab" type="button" aria-label="Добавить выступление" aria-haspopup="dialog" aria-controls="entry-dialog"><svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true" focusable="false"><path d="M12 4v16M4 12h16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square"/></svg></button></div>
+</header>
 <form id="filters" class="filter-panel earnings-filters">
         <div class="filter-toolbar">
           <div class="mode-switch" role="group" aria-label="Выбор даты или периода">
@@ -49,7 +51,6 @@
 <div class="charts"><section class="panel daily-panel"><div class="section-heading"><h2>Заработок по дням</h2><div class="switch" role="group" aria-label="Показатель графика"><button type="button" data-chart="sum" aria-pressed="true">Сумма</button><button type="button" data-chart="hour" aria-pressed="false">За час</button></div></div><div id="daily-chart" class="daily-chart"></div></section><section class="panel spots-panel" id="spots-panel" hidden><h2>По точкам · за час</h2><div id="spots-chart"></div></section></div>
 <section class="panel performances"><h2>Выступления</h2><div id="empty" class="empty" hidden><p>За этот период выступлений нет.</p></div><div class="table-wrap"><table id="entries-table"><thead><tr><th>Дата</th><th>Время</th><th>Точка</th><th>Получено</th><th>Итого</th><th>За час</th><th><span class="sr-only">Действия</span></th></tr></thead><tbody id="entries-body"></tbody></table></div></section>
 </section>
-<div class="earnings-actions"><button id="add-entry" class="primary add-entry-fab" type="button" aria-label="Добавить выступление" aria-haspopup="dialog" aria-controls="entry-dialog"><svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true" focusable="false"><path d="M12 4v16M4 12h16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square"/></svg></button></div>
 </main>
 <dialog id="entry-dialog" class="drawer" aria-labelledby="entry-title"><form id="entry-form">
 <div class="drawer-heading"><h2 id="entry-title">Добавить выступление</h2><button id="close-entry" type="button" class="icon-button" aria-label="Закрыть">×</button></div>

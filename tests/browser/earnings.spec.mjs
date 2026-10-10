@@ -156,7 +156,7 @@ test('earnings: spots comparison hides for zero or one place and updates after a
  await expect(page.locator('#spots-panel')).toBeHidden();
 });
 
-test('earnings: desktop action stays beside the report during scrolling, mobile stays below it',async({page})=>{
+test('earnings: action stays accessible while scrolling, beside desktop content or mobile tabs',async({page})=>{
  await page.clock.setFixedTime(new Date('2026-10-10T09:00:00Z'));
  await page.addInitScript(()=>sessionStorage.setItem('kanata_admin_token','test'));
  const model=validateEntry({date:'2026-10-04',spotId:'spot-a',start:'11:11',end:'12:12',nextDay:false,amounts:[{currency:'CZK',amount:'444'},{currency:'EUR',amount:'0'},{currency:'USD',amount:'0'}]});
@@ -168,23 +168,23 @@ test('earnings: desktop action stays beside the report during scrolling, mobile 
  });
  await page.goto('/stat-panel/earnings');await expect(page.locator('#entries-body tr')).toHaveCount(entries.length);
  await page.evaluate(()=>document.fonts.ready);
- for(const width of [320,390,700,760,999,1000,1024,1366,1440,1600,1920,2560]){
+ for(const width of [320,390,414,700,760,999,1000,1024,1366,1440,1600,1920,2560]){
   await page.setViewportSize({width,height:900});
   await page.evaluate(()=>scrollTo(0,0));
   await expect.poll(()=>page.evaluate(()=>{
-   const table=document.querySelector('.performances').getBoundingClientRect(),button=document.querySelector('#add-entry').getBoundingClientRect();
-   const desktop=innerWidth>=1000,gap=desktop?button.left-table.right:button.top-table.bottom,size=innerWidth<=700?58:64;
-   return Math.abs(gap-(desktop?24:20))<1&&button.width===size&&button.height===size
-    &&(!desktop||Math.abs(button.bottom-(innerHeight-32))<1)
+   const table=document.querySelector('.performances').getBoundingClientRect(),button=document.querySelector('#add-entry').getBoundingClientRect(),header=document.querySelector('.masthead').getBoundingClientRect();
+   const desktop=innerWidth>=1000,size=desktop?64:44;
+   const placed=desktop?Math.abs(button.left-table.right-24)<1&&Math.abs(button.bottom-(innerHeight-32))<1
+    :button.top>=header.top&&button.bottom<=header.bottom&&[...document.querySelectorAll('.masthead nav a')].every(link=>link.getBoundingClientRect().right<=button.left);
+   return placed&&button.width===size&&button.height===size
     &&button.left>=0&&button.right<=innerWidth&&document.documentElement.scrollWidth<=innerWidth;
   })).toBe(true);
   expect(await page.locator('#entries-table').evaluate(el=>getComputedStyle(el).fontSize)).toBe('16px');
-  if(width>=1000){
-   const before=await page.locator('#add-entry').boundingBox();
-   await page.evaluate(()=>scrollTo(0,500));
-   await expect.poll(()=>page.evaluate(()=>scrollY)).toBeGreaterThan(0);
-   expect(await page.locator('#add-entry').boundingBox()).toEqual(before);
-  }
+  const before=await page.locator('#add-entry').boundingBox();
+  await page.evaluate(()=>scrollTo(0,500));
+  await expect.poll(()=>page.evaluate(()=>scrollY)).toBeGreaterThan(0);
+  expect(await page.locator('#add-entry').boundingBox()).toEqual(before);
+  await page.locator('#add-entry').click();await expect(page.locator('#entry-dialog')).toBeVisible();
+  await page.locator('#cancel-entry').click();await expect(page.locator('#entry-dialog')).toBeHidden();
  }
- await page.locator('#add-entry').click();await expect(page.locator('#entry-dialog')).toBeVisible();
 });

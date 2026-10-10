@@ -78,9 +78,17 @@ test('insights combines real API-shaped data, all 92 days, weekly sums and acces
   await expect(page.locator('#chart-tooltip')).toBeHidden();
   await page.locator('[data-group="days"]').click();
   await expect(page.locator('.chart-income')).toHaveCount(92);
-  for (const width of [1440, 1000, 780, 700, 390, 320]) {
+  for (const width of [1440, 1000, 780, 700, 430, 414, 390, 381, 380, 320]) {
     await page.setViewportSize({width, height: 1000});
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    if (width <= 760) {
+      expect(await page.evaluate(() => {
+        const from = document.querySelector('#from').getBoundingClientRect(), to = document.querySelector('#to').getBoundingClientRect();
+        const panel = document.querySelector('#filters').getBoundingClientRect();
+        const separate = innerWidth <= 380 ? to.top >= from.bottom + 10 : to.left >= from.right + 19;
+        return separate && from.left >= panel.left && to.right <= panel.right && from.width > 0 && to.width > 0;
+      })).toBe(true);
+    }
   }
   await page.emulateMedia({colorScheme: 'dark'});
   expect(await page.evaluate(() => window.violations)).toEqual([]);
