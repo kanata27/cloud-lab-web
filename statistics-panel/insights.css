@@ -4,13 +4,13 @@
 .insights-presets button { padding:10px 14px; }
 .insights-presets button[aria-pressed=true],.insights-switch button[aria-pressed=true] { background:var(--green); border-color:var(--green); color:#fff; }
 .insights-metrics { grid-template-columns:repeat(5,minmax(0,1fr)); }
-.insights-metrics .metric p { font-weight:650; font-size:clamp(23px,2.25vw,35px); margin-bottom:0; overflow-wrap:anywhere; }
+.insights-metrics .metric p { margin-bottom:0; overflow-wrap:anywhere; }
 .insights-metrics .metric h2 { margin-bottom:12px; }
 .insights-metrics #hour-czk span { font:inherit; color:inherit; white-space:nowrap; }
 .insights-graph { padding:24px; }
 .insights-heading { display:flex; align-items:center; flex-wrap:wrap; gap:20px; margin-bottom:18px; }
-.insights-heading h1 { margin:0; font:650 clamp(19px,2vw,25px)/1.3 system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; letter-spacing:-.025em; }
-.insights-legend { display:flex; flex-wrap:wrap; gap:18px; font-size:13px; color:var(--muted); }
+.insights-heading h1 { margin:0; font-size:16px; font-weight:600; line-height:1.5; letter-spacing:normal; }
+.insights-legend { display:flex; flex-wrap:wrap; gap:18px; font-size:12px; color:var(--muted); }
 .insights-legend span { display:flex; align-items:center; gap:8px; }
 .income-key { display:block; width:17px; height:13px; border-radius:3px; background:var(--green); }
 .views-key { display:block; position:relative; width:28px; height:2px; background:var(--insights-blue); }
@@ -23,15 +23,15 @@
 .insights-chart { height:400px; position:relative; touch-action:pan-y; border-radius:6px; }
 .insights-chart:focus-visible { outline:3px solid var(--green); outline-offset:7px; }
 .insights-chart svg { display:block; width:100%; height:100%; overflow:hidden; }
-.insights-chart .chart-axis { fill:var(--muted); font-size:12px; font-variant-numeric:tabular-nums; }
-.insights-chart .chart-unit { font-size:12px; }
+.insights-chart .chart-axis { fill:var(--muted); font:11px system-ui,sans-serif; font-variant-numeric:tabular-nums; }
+.insights-chart .chart-unit { font-size:11px; }
 .insights-chart .chart-income { fill:var(--green); }
 .insights-chart .chart-views { stroke:var(--insights-blue); stroke-width:2; fill:none; stroke-linejoin:round; stroke-linecap:round; }
 .insights-chart .chart-point { fill:var(--insights-blue); stroke:var(--panel); stroke-width:1.5; }
 .insights-chart .chart-hover { fill:var(--hover); }
 .insights-chart .chart-grid { stroke:var(--line); stroke-width:1; }
 .chart-tooltip { position:absolute; z-index:1; pointer-events:none; max-width:calc(100% - 16px); min-width:180px; padding:12px 14px; background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:9px; box-shadow:0 4px 18px #0002; font-size:12px; line-height:1.55; }
-.chart-tooltip strong { display:block; margin-bottom:5px; font-weight:650; }
+.chart-tooltip strong { display:block; margin-bottom:5px; font-weight:600; }
 .chart-tooltip dl { margin:0; display:grid; grid-template-columns:auto auto; column-gap:18px; row-gap:2px; }
 .chart-tooltip dt,.chart-tooltip dd { margin:0; }
 .chart-tooltip dd { text-align:right; font-weight:600; font-variant-numeric:tabular-nums; }
@@ -46,7 +46,6 @@
   .insights-filters label:nth-child(2) { grid-column:2/4; }
   .insights-metrics { gap:10px; }
   .insights-metrics .metric { padding:17px; }
-  .insights-metrics .metric p { font-size:26px; }
 }
 @media(max-width:760px) {
   .insights-filters { margin-top:28px; grid-template-columns:1fr 1fr; gap:14px 10px; }
@@ -57,14 +56,13 @@
   .insights-filters input { font-size:16px; }
   .insights-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); }
   .insights-metrics .metric:first-child { grid-column:1/-1; }
-  .insights-metrics #hour-czk { font-size:22px; }
   .insights-graph { padding:17px 12px 14px; }
   .insights-heading { gap:12px; }
   .insights-heading h1 { flex-basis:100%; }
   .insights-legend { gap:10px; font-size:12px; }
   .insights-switch button { padding:6px 10px; min-height:44px; }
   .insights-chart { height:320px; }
-  .insights-chart .chart-axis { font-size:10px; }
+
   .insights-chart .chart-unit { font-size:11px; }
   .chart-tooltip { min-width:0; font-size:11px; padding:9px 11px; }
 }
@@ -75,6 +73,4 @@
   .insights-filters #show { grid-row:4; }
   .insights-legend { flex-basis:100%; }
   .insights-switch { margin-left:0; }
-  .insights-metrics .metric p { font-size:24px; }
-  .insights-metrics #hour-czk { font-size:18px; }
 }

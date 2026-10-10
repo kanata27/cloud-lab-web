@@ -1,0 +1,100 @@
+/* One typography source for Visits, Earnings and Insights. Load last. */
+body.panel-page {
+  --panel-font:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --panel-type-ink:#242724;
+  --panel-type-muted:#676a65;
+  --panel-type-surface:#faf9f6;
+  font-family:var(--panel-font);
+  font-size:15px;
+  font-weight:400;
+  font-style:normal;
+  line-height:1.5;
+  letter-spacing:normal;
+  color:var(--panel-type-ink);
+}
+
+body.panel-page :is(button,input,select,textarea) { font-family:var(--panel-font); }
+body.panel-page .masthead nav { font-size:15px; line-height:1.5; }
+body.panel-page .masthead nav a { font-weight:400; letter-spacing:normal; }
+body.panel-page .masthead #logout { font-size:13px; font-weight:400; line-height:1.5; }
+
+body.panel-page :is(.panel > h2,.panel-heading h2,.section-heading h2,.insights-heading h1) {
+  font-family:var(--panel-font);
+  font-size:16px;
+  font-weight:600;
+  line-height:1.5;
+  letter-spacing:normal;
+}
+body.panel-page .metric h2 {
+  font-size:12px;
+  font-weight:500;
+  line-height:1.5;
+  letter-spacing:normal;
+}
+body.panel-page :is(.metric-value,.metric p) {
+  font-family:var(--panel-font);
+  font-size:clamp(26px,3.2vw,40px);
+  font-weight:400;
+  line-height:1.2;
+  letter-spacing:-.05em;
+  font-variant-numeric:tabular-nums;
+  color:var(--panel-type-ink);
+}
+body.panel-page .insights-metrics #hour-czk span {
+  font:inherit;
+  letter-spacing:inherit;
+  color:inherit;
+}
+body.panel-page :is(.metric > span,.metric .muted) {
+  font-size:11px;
+  font-weight:400;
+  line-height:1.5;
+  color:var(--panel-type-muted);
+}
+body.panel-page :is(.filter-fields label,.insights-filters label) {
+  font-size:12px;
+  font-weight:400;
+  line-height:1.5;
+}
+body.panel-page :is(.filter-fields input,.filter-fields select,.insights-filters input) {
+  font-size:16px;
+  font-weight:400;
+  line-height:1.5;
+}
+body.panel-page :is(.filter-toolbar .presets button,.insights-presets button) {
+  font-size:13px;
+  font-weight:500;
+  line-height:1.5;
+}
+body.panel-page #show { font-size:15px; font-weight:600; line-height:1.5; color:var(--panel-type-surface); }
+body.panel-page :is(.legend,.insights-legend) {
+  font-size:12px;
+  font-weight:400;
+  line-height:1.5;
+  color:var(--panel-type-muted);
+}
+body.panel-page :is(.chart,.daily-chart,.insights-chart) svg text {
+  font-family:var(--panel-font);
+  font-size:11px;
+  font-weight:400;
+  line-height:normal;
+  letter-spacing:normal;
+  font-variant-numeric:tabular-nums;
+}
+body.panel-page :is(.chart-label,.chart-axis,.chart-unit) { fill:var(--panel-type-muted); }
+body.panel-page .chart-value { fill:var(--panel-type-ink); }
+
+@media(prefers-color-scheme:dark) {
+  body.panel-page { --panel-type-ink:#eceee7; --panel-type-muted:#adb4ad; --panel-type-surface:#252927; }
+}
+@media(max-width:760px) {
+  body.panel-page .masthead nav { font-size:14px; }
+  body.panel-page .masthead #logout { font-size:12px; }
+  body.panel-page :is(.metric-value,.metric p) { font-size:32px; }
+  body.panel-page :is(.metric > span,.metric .muted) { font-size:12px; }
+  body.panel-page :is(.filter-toolbar .presets button,.insights-presets button) { font-size:12px; }
+}
+@media(max-width:380px) {
+  body.panel-page :is(.metric-value,.metric p) { font-size:30px; }
+  body.panel-page :is(.filter-toolbar .presets button,.insights-presets button) { font-size:11px; }
+}
