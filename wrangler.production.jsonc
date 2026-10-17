@@ -48,8 +48,8 @@
   "vars": {
     "CANONICAL_HOST": "kanata27.com",
     "PUBLIC_ALIASES": "www.kanata27.com",
-    "ACCESS_TEAM_DOMAIN": "https://replace-me.cloudflareaccess.com",
-    "ACCESS_AUD": "0000000000000000000000000000000000000000000000000000000000000000"
+    "ACCESS_TEAM_DOMAIN": "https://purple-voice-fdcb.cloudflareaccess.com",
+    "ACCESS_AUD": "ed32f8f8b3595fb4dee1ff74a4f224b61f9ef3cead6fc7eaa2d4a1d2ee6934dc"
   },
   "ratelimits": [
     {
