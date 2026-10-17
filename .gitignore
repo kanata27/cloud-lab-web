@@ -11,3 +11,10 @@ aws-inventory*.json
 *.log
 
 earnings-backup*.sql
+
+# Private migration input/output must never enter the repository.
+private/
+.local-migration/
+kanata-analytics-export*.json
+analytics-import*.sql
+kanata-analytics-history-private.zip

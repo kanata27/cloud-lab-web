@@ -1,40 +1,22 @@
-// Read-only check: no login/password POST, analytics events, or database writes.
-import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
-const target = process.argv[2];
-assert.ok(["preview", "production"].includes(target), "Choose preview or production");
-const origin = target === "production" ? "https://kanata27.com" : "https://preview.kanata27.com";
-const { apiBase } = JSON.parse(await readFile(new URL("../site.config.json", import.meta.url), "utf8"));
-
-async function read(url, options = {}) {
-  let lastError;
-  for (let attempt = 0; attempt < 4; attempt++) {
-    try { return await fetch(url, { ...options, signal: AbortSignal.timeout(10000) }); }
-    catch (error) { lastError = error; if (attempt < 3) await new Promise(resolve => setTimeout(resolve, 3000)); }
-  }
-  throw lastError;
+// Read-only smoke: no events, credentials, OTP messages, or database writes.
+import assert from 'node:assert/strict';
+const target=process.argv[2];
+assert.ok(['preview','production'].includes(target),'Choose preview or production');
+const origin=target==='production'?'https://kanata27.com':'https://preview.kanata27.com';
+async function read(path,headers={}) {
+ return fetch(origin+path,{headers,redirect:'manual',signal:AbortSignal.timeout(15000)});
 }
-for (const path of ["/", "/?q=migration-check", "/assets/hero.webp", "/site-config.js", "/stat-panel/login.html", "/stat-panel/index.html", "/stat-panel/earnings", "/stat-panel/earnings.js", "/stat-panel/insights", "/stat-panel/insights.js", "/stat-panel/date-filter.js"]) {
-  const response = await read(origin + path);
-  assert.equal(response.status, 200, `HTTP error on ${path}`);
-  assert.equal(new URL(response.url).origin, origin, "Unexpected cross-origin redirect");
-  assert.equal(response.headers.get("x-content-type-options"), "nosniff");
-  if (path.startsWith("/stat-panel/")) assert.match(response.headers.get("cache-control") || "", /no-store/);
+for(const path of ['/','/?q=migration-check','/assets/hero.webp','/site-config.js']) {
+ const response=await read(path);
+ assert.equal(response.status,200,'Public route failed: '+path);
+ assert.equal(response.headers.get('X-Content-Type-Options'),'nosniff');
 }
-assert.equal((await read(origin + "/does-not-exist")).status, 404);
-if (target === "production") {
-  assert.equal((await read("https://www.kanata27.com/")).status, 200, "www domain is not ready");
+assert.equal((await read('/does-not-exist')).status,404);
+for(const path of ['/stat-panel/','/stat-panel/earnings','/stat-panel/insights','/stat-panel/dashboard.js','/api/stats?from=2026-10-01&to=2026-10-01&source=all','/earnings-api/spots']) {
+ for(const headers of [{},{Authorization:'Bearer forged-legacy-token','Cf-Access-Authenticated-User-Email':'forged@example.test'}]) {
+  const response=await read(path,headers);
+  assert.ok([302,303,401,403].includes(response.status),'Guest was not denied on '+path+' ('+response.status+')');
+ }
 }
-const preflight = await read(apiBase + "/stats", {
-  method: "OPTIONS", headers: { Origin: origin, "Access-Control-Request-Method": "GET", "Access-Control-Request-Headers": "authorization" },
-});
-assert.ok([200, 204].includes(preflight.status), "CORS preflight failed");
-assert.equal(preflight.headers.get("access-control-allow-origin"), origin, "Add the exact frontend origin to API Gateway CORS");
-const today = new Date().toISOString().slice(0, 10);
-for (const headers of [{ Origin: origin }, { Origin: origin, Authorization: "Bearer migration-invalid-token" }]) {
-  const response = await read(`${apiBase}/stats?from=${today}&to=${today}&source=all`, { headers });
-  assert.ok([401, 403].includes(response.status), "Stats API must reject missing/invalid tokens");
-}
-console.log(`PASS: ${origin}, assets, panel paths, CORS and unauthenticated API rejection.`);
-
-assert.equal((await read(origin + "/earnings-api/spots")).status, 401, "Earnings must require authentication");
+if(target==='production')assert.equal((await fetch('https://www.kanata27.com/',{redirect:'manual'})).status,200);
+console.log('PASS: public site works; guests and legacy/spoofed credentials cannot read panel or APIs.');

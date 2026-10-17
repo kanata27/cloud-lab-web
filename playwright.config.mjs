@@ -16,7 +16,7 @@ export default defineConfig({
       : {},
   },
   webServer: {
-    command: "npm run dev",
+    command: "node tests/support/server.mjs",
     url: "http://127.0.0.1:8787",
     timeout: 90000,
     reuseExistingServer: false,

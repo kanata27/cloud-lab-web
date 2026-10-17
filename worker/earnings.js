@@ -1,33 +1,11 @@
-import config from '../site.config.json' with {type:'json'};
+import {body,fail} from './http.js';
 import {dateValid,today,validateEntry,convert} from '../statistics-panel/earnings-model.js';
 const PREFIX='/earnings-api';
 const json=(data,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','X-Frame-Options':'DENY','Content-Security-Policy':"default-src 'none'; frame-ancestors 'none'",'Vary':'Authorization'}});
-function fail(message,status=400){throw Object.assign(new Error(message),{status});}
 function spotName(data){
   const name=typeof data.name==='string'?data.name.trim().normalize('NFC'):'';
-  if(!name||name.length>80||/[\u0000-\u001f]/.test(name)) fail('Название точки: от 1 до 80 символов.');
+  if(!name||name.length>80||/[\u0000-\u001f]/.test(name))fail('Название точки: от 1 до 80 символов.');
   return name;
-}
-async function body(request) {
-  if(!request.headers.get('Content-Type')?.startsWith('application/json')) fail('Ожидается JSON.',415);
-  const text=await request.text();if(text.length>16000) fail('Слишком большая запись.',413);
-  let data;try{data=JSON.parse(text);}catch{fail('Некорректный JSON.');}
-  if(!data||typeof data!=='object'||Array.isArray(data))fail('Ожидается объект записи.');
-  return data;
-}
-export async function authorize(request,fetcher=fetch) {
-  const token=request.headers.get('Authorization');
-  if(!token||!/^Bearer [^\s]{1,4096}$/.test(token)) fail('Войди в панель заново.',401);
-  const date=new Date().toISOString().slice(0,10);
-  const query=new URLSearchParams({from:date,to:date,source:'all',time_zone:'UTC'});
-  let response;
-  // Workers supports manual redirects; the response checks below reject every 3xx.
-  try{response=await fetcher(`${config.apiBase}/stats?${query}`,{headers:{Authorization:token,Accept:'application/json'},redirect:'manual',signal:AbortSignal.timeout(10000)});}catch{fail('Сервис входа временно недоступен. Попробуй ещё раз.',503);}
-  if([401,403].includes(response.status)) fail('Сессия истекла. Войди заново.',401);
-  if(!response.ok) fail('Не удалось проверить вход. Попробуй ещё раз.',503);
-  // The existing protected endpoint is the authority; never trust a decoded JWT alone.
-  let report;try{report=await response.json();}catch{fail('Сервис входа вернул некорректный ответ.',503);}
-  if(report?.version!==1||!report.totals||!Array.isArray(report.daily)) fail('Не удалось подтвердить доступ к панели.',503);
 }
 export async function ratesFor(date,db,fetcher=fetch) {
   if(!dateValid(date)||date<'2000-01-01'||date>today()) fail('Выбери дату не позже сегодняшней.');
@@ -55,7 +33,6 @@ export default {async fetch(request,env) {
     const origin=request.headers.get('Origin');
     if(origin&&origin!==url.origin) fail('Запрос с другого сайта запрещён.',403);
     if(Number(request.headers.get('Content-Length')||0)>16000) fail('Слишком большая запись.',413);
-    await authorize(request);
     if(!env.EARNINGS_DB) fail('Хранилище заработков ещё не подключено.',503);
     const db=env.EARNINGS_DB,path=url.pathname.slice(PREFIX.length);
     if(path==='/rates'&&request.method==='GET') return json(await ratesFor(url.searchParams.get('date'),db));

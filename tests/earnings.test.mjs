@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {DatabaseSync} from 'node:sqlite';
 import {readFileSync} from 'node:fs';
-import worker from '../worker/earnings.js';
+import worker from '../worker/index.js';
+import {accessEnv,accessToken,keysResponse} from './support/access-fixture.mjs';
 import {duration,validateEntry,convert,summary} from '../statistics-panel/earnings-model.js';
 const base={id:'record-1',date:'2026-09-01',start:'14:20',end:'17:12',nextDay:false,spotId:'spot-a',amounts:[{currency:'CZK',amount:'220'},{currency:'EUR',amount:'2,2'},{currency:'USD',amount:'2'}]};
 test('duration, mixed currencies, weighted hourly totals and DST validation',()=>{
@@ -22,10 +23,10 @@ test('authenticated persistent CRUD, server conversion, snapshots, conflicts, fi
  const db={prepare(sql){return {bind(...args){return {async first(){return sqlite.prepare(sql).get(...args)||null;},async all(){return {results:sqlite.prepare(sql).all(...args)};},async run(){return {meta:{changes:Number(sqlite.prepare(sql).run(...args).changes)}};}}},async all(){return {results:sqlite.prepare(sql).all()};}}}};
  let rateCalls=0,authDown=false;
  const original=globalThis.fetch;globalThis.fetch=async(url,options)=>{
-  if(String(url).includes('/stats?'))return authDown?new Response('',{status:503}):options.headers.Authorization==='Bearer valid'?Response.json({version:1,totals:{},daily:[]}):new Response('',{status:401});
+  if(String(url).includes('/cdn-cgi/access/certs'))return keysResponse(url);
   rateCalls++;return Response.json([{base:'EUR',quote:'CZK',date:'2026-09-01',rate:25},{base:'EUR',quote:'USD',date:'2026-09-01',rate:1.25}]);
  };
- const call=async(path,method='GET',data,token='valid')=>{const res=await worker.fetch(new Request('https://kanata.test/earnings-api'+path,{method,headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:data?JSON.stringify(data):undefined}),{EARNINGS_DB:db});return {status:res.status,data:await res.json()};};
+ const call=async(path,method='GET',data,token='valid')=>{const res=await worker.fetch(new Request('https://kanata.test/earnings-api'+path,{method,headers:{'Cf-Access-Jwt-Assertion':token==='valid'?await accessToken():'invalid.invalid.invalid','Content-Type':'application/json',Origin:'https://kanata.test'},body:data?JSON.stringify(data):undefined}),{...accessEnv,EARNINGS_DB:db,...(authDown?{ACCESS_ALLOWED_EMAIL:''}:{})});return {status:res.status,data:await res.json()};};
  try{
   assert.equal((await call('/spots','POST',{name:'A'},'bad')).status,401);
   assert.equal((await call('/spots')).data.spots.length,0);

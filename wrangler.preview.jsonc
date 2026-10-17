@@ -2,7 +2,7 @@
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "kanata-web-preview",
   "compatibility_date": "2026-09-13",
-  "workers_dev": true,
+  "workers_dev": false,
   "preview_urls": false,
   "assets": {
     "directory": "./dist",
@@ -10,7 +10,20 @@
     "not_found_handling": "404-page",
     "binding": "ASSETS",
     "run_worker_first": [
-      "/earnings-api/*"
+      "/*",
+      "!/",
+      "!/index.html",
+      "!/style.css",
+      "!/analytics.js",
+      "!/site-config.js",
+      "!/assets/apple-touch-icon.png",
+      "!/assets/favicon.ico",
+      "!/assets/favicon.svg",
+      "!/assets/hero.webp",
+      "!/assets/kanata-logo.svg",
+      "!/assets/og-image.jpg",
+      "!/robots.txt",
+      "!/404.html"
     ]
   },
   "routes": [
@@ -19,7 +32,7 @@
       "custom_domain": true
     }
   ],
-  "main": "worker/earnings.js",
+  "main": "worker/index.js",
   "d1_databases": [
     {
       "binding": "EARNINGS_DB",
@@ -27,5 +40,26 @@
       "database_id": "904123f3-aad7-49bf-94b9-5159e191e968",
       "migrations_dir": "migrations"
     }
-  ]
+  ],
+  "vars": {
+    "CANONICAL_HOST": "preview.kanata27.com",
+    "PUBLIC_ALIASES": "",
+    "ACCESS_TEAM_DOMAIN": "https://purple-voice-fdcb.cloudflareaccess.com",
+    "ACCESS_AUD": "4c4a7004adf71d02cc6bdb1c9202624d2d86f0f72000cde9b30fca83be80e7bf"
+  },
+  "ratelimits": [
+    {
+      "name": "EVENTS_RATE_LIMITER",
+      "namespace_id": "27101",
+      "simple": {
+        "limit": 120,
+        "period": 60
+      }
+    }
+  ],
+  "triggers": {
+    "crons": [
+      "47 3 * * *"
+    ]
+  }
 }

@@ -1,6 +1,6 @@
+import {accessFetch,sessionEnded,logout} from './session.js';
 import {DateCalendar, fullDate} from "./date-filter.js";
 "use strict";
-const AUTH_TOKEN_KEY = "kanata_admin_token";
 const API_BASE = window.KANATA_CONFIG.apiBase;
 const DAY = 86400000;
 const MAX_DAYS = 90;
@@ -323,60 +323,15 @@ class Dashboard {
 }
 
 async function apiReport(selection, signal) {
-  const token = sessionStorage.getItem(AUTH_TOKEN_KEY);
-  if (!token) {
-    const error = new Error("Сессия истекла.");
-    error.code = "SESSION_EXPIRED";
-    throw error;
-  }
-
   const query = new URLSearchParams(selection);
-  const response = await fetch(`${API_BASE}/stats?${query}`, {
-    cache: "no-store",
-    credentials: "omit",
-    headers: {
-      Accept: "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    signal,
+  const response = await accessFetch(`${API_BASE}/stats?${query}`, {
+    headers: {Accept: "application/json"}, signal,
   });
-
-  if (response.status === 401 || response.status === 403) {
-    const error = new Error("Сессия истекла.");
-    error.code = "SESSION_EXPIRED";
-    throw error;
-  }
-
-  if (!response.ok) {
-    throw new Error("Не удалось загрузить статистику.");
-  }
-
+  if (!response.ok) throw new Error("Не удалось загрузить статистику.");
   return response.json();
 }
 
-document.getElementById("logout").addEventListener("click", () => {
-  sessionStorage.removeItem(AUTH_TOKEN_KEY);
-  document.getElementById("dashboard").hidden = true;
-});
-
-window.addEventListener("pageshow", event => {
-  if (event.persisted && !sessionStorage.getItem(AUTH_TOKEN_KEY)) {
-    document.getElementById("dashboard").hidden = true;
-    window.location.replace("./login.html");
-  }
-});
-
-if (!sessionStorage.getItem(AUTH_TOKEN_KEY)) {
-  window.location.replace("./login.html");
-} else {
-  document.getElementById("dashboard").hidden = false;
-  const dashboard = new Dashboard({
-    timeZone: "UTC",
-    fetchReport: apiReport,
-    onSessionEnd() {
-      sessionStorage.removeItem(AUTH_TOKEN_KEY);
-      window.location.replace("./login.html");
-    },
-  });
-  dashboard.load();
-}
+document.getElementById("logout").addEventListener("click", logout);
+document.getElementById("dashboard").hidden = false;
+const dashboard = new Dashboard({timeZone: "UTC", fetchReport: apiReport, onSessionEnd: sessionEnded});
+dashboard.load();

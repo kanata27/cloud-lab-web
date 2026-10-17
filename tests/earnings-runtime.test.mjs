@@ -7,7 +7,7 @@ import {mkdtemp,copyFile,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {dirname,join} from 'node:path';
 
-test('earnings authentication runs in the Cloudflare runtime and fails closed',async()=>{
+test('Access JWT authentication runs in the Cloudflare runtime and fails closed',async()=>{
  const require=createRequire(import.meta.url);
  const binary=require('workerd').default;
  const {build}=require('esbuild');
