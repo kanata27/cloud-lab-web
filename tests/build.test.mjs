@@ -23,10 +23,10 @@ test("only the explicit public allowlist is published; panel keeps its productio
 });
 
 test("API URL and CSP stay aligned; unsafe public configuration is rejected", () => {
-  const config = { apiBase: "https://api.kanata27.com", analyticsOrigins: ["https://kanata27.com"] };
+  const config = { apiBase: "/api", eventsPath:"/events", analyticsOrigins: ["https://kanata27.com"] };
   assert.equal(validateConfig(config), config);
   const headers = securityHeaders(config);
-  assert.match(headers, /connect-src 'self' https:\/\/api.kanata27.com/);
+  assert.match(headers, /connect-src 'self'/);
   assert.doesNotMatch(headers, /unsafe-inline|unsafe-eval/);
   assert.match(headers, /Cache-Control: no-store/);
   for (const apiBase of ["http://api.kanata27.com", "https://user:pass@api.kanata27.com", "https://api.kanata27.com/", "https://api.kanata27.com?token=x"]) {
@@ -34,13 +34,16 @@ test("API URL and CSP stay aligned; unsafe public configuration is rejected", ()
   }
 });
 
-test("production and preview route only the earnings API through the worker", async () => {
+test("production and preview protect all non-public routes and disable alternate URLs", async () => {
   const preview = JSON.parse(await readFile(join(projectRoot, "wrangler.preview.jsonc"), "utf8"));
   const production = JSON.parse(await readFile(join(projectRoot, "wrangler.production.jsonc"), "utf8"));
   for (const config of [preview, production]) {
-    assert.equal(config.main, "worker/earnings.js");
+    assert.equal(config.main, "worker/index.js");
     assert.equal(config.assets.directory, "./dist");
-    assert.deepEqual(config.assets.run_worker_first, ["/earnings-api/*"]);
+    assert.equal(config.assets.run_worker_first[0],"/*");
+    assert.ok(config.assets.run_worker_first.includes("!/assets/hero.webp"));
+    assert.ok(!config.assets.run_worker_first.some(path=>path.startsWith("!/stat")||path.startsWith("!/api")));
+    assert.equal(config.workers_dev,false);assert.equal(config.preview_urls,false);
     assert.equal(config.assets.binding, "ASSETS");
     assert.equal(config.d1_databases[0].binding, "EARNINGS_DB");
     assert.notEqual(config.assets.not_found_handling, "single-page-application");

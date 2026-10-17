@@ -1,4 +1,4 @@
-import {test,expect} from '@playwright/test';
+import {test,expect} from '../support/browser.mjs';
 import {validateEntry,convert} from '../../statistics-panel/earnings-model.js';
 test('earnings: create spot and mixed-currency entry, edit, filter, mobile and delete',async({page})=>{
  await page.clock.setFixedTime(new Date('2026-09-13T20:00:00Z'));
@@ -86,7 +86,7 @@ test('earnings: real spots only and hover duration and names for one or several 
  await expect(page.locator('#daily-chart .chart-bar title')).toHaveText(['2ч 52м | Anděl','2ч 52м | Anděl']);
  await page.locator('#add-entry').click();await expect(page.locator('#entry-spot')).toHaveValue('spot-b');
 });
-test('earnings requires a session',async({page})=>{await page.goto('/stat-panel/earnings');await expect(page).toHaveURL(/login/);});
+test('earnings requires a session',async({page,context})=>{await context.clearCookies();await page.goto('/stat-panel/earnings');await expect(page).toHaveURL(/login/);});
 test('earnings: pencil renames a spot, handles conflicts and preserves the unsaved entry and history',async({page})=>{
  await page.clock.setFixedTime(new Date('2026-10-10T09:00:00Z'));
  await page.addInitScript(()=>{sessionStorage.setItem('kanata_admin_token','test');window.violations=[];document.addEventListener('securitypolicyviolation',e=>window.violations.push(e.violatedDirective));});

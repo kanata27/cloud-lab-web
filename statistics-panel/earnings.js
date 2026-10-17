@@ -1,6 +1,7 @@
+import {accessFetch,sessionEnded,logout} from './session.js';
 import {DEFAULT_CURRENCIES,today,duration,validateEntry,convert,summary} from './earnings-model.js';
 import {DateFilters} from './date-filter.js';
-const $=id=>document.getElementById(id),tokenKey='kanata_admin_token';
+const $=id=>document.getElementById(id);
 const number=new Intl.NumberFormat('ru-RU',{maximumFractionDigits:2}),one=new Intl.NumberFormat('ru-RU',{maximumFractionDigits:1});
 const names=new Intl.DisplayNames(['ru'],{type:'currency'});
 const money=(minor,unit='Kč')=>`${number.format(minor/100)} ${unit}`;
@@ -12,10 +13,9 @@ let dateFilters;
 function node(tag,text,className){const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(className)n.className=className;return n;}
 function errorAt(id,message){$(id).textContent=message;$(id).hidden=!message;}
 function closeEntryMenus(){document.querySelectorAll('.entry-menu:popover-open').forEach(menu=>menu.hidePopover());}
-function expire(){closeEntryMenus();sessionStorage.removeItem(tokenKey);$('app').hidden=true;for(const d of document.querySelectorAll('dialog[open]'))d.close();location.replace('/stat-panel/login.html');}
+function expire(){closeEntryMenus();$('app').hidden=true;for(const d of document.querySelectorAll('dialog[open]'))d.close();sessionEnded();}
 async function api(path,options={}){
- const token=sessionStorage.getItem(tokenKey);if(!token){expire();throw new Error('Войди заново.');}
- const response=await fetch('/earnings-api'+path,{...options,cache:'no-store',credentials:'omit',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json',...options.headers},signal:AbortSignal.timeout(20000)});
+ const response=await accessFetch('/earnings-api'+path,{...options,cache:'no-store',headers:{'Content-Type':'application/json',...options.headers},signal:AbortSignal.timeout(20000)});
  if(response.status===401){expire();throw new Error('Сессия истекла.');}
  let data;try{data=await response.json();}catch{throw new Error('Сервис заработков пока недоступен.');}
  if(!response.ok)throw new Error(data.error||'Не удалось выполнить запрос.');return data;
@@ -256,9 +256,9 @@ $('spot-form').addEventListener('submit',async event=>{
 $('cancel-delete').addEventListener('click',()=>$('delete-dialog').close());
 $('confirm-delete').addEventListener('click',async()=>{$('confirm-delete').disabled=true;try{await api(`/entries/${deleteTarget.id}`,{method:'DELETE',body:JSON.stringify({version:deleteTarget.version})});$('delete-dialog').close();await load();}catch(error){errorAt('delete-error',error.message);}finally{$('confirm-delete').disabled=false;}});
 document.querySelectorAll('[data-chart]').forEach(b=>b.addEventListener('click',()=>{chartMode=b.dataset.chart;document.querySelectorAll('[data-chart]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));renderCharts();}));
-$('logout').addEventListener('click',expire);window.addEventListener('pageshow',e=>{if(e.persisted&&!sessionStorage.getItem(tokenKey))expire();});
+$('logout').addEventListener('click',logout);
 window.addEventListener('resize',closeEntryMenus);document.addEventListener('scroll',repositionEntryMenus,true);
 window.addEventListener('resize',()=>{if($('spot-picker-menu').matches(':popover-open'))positionSpotPicker();});
 document.addEventListener('scroll',()=>{if($('spot-picker-menu').matches(':popover-open'))positionSpotPicker();},true);
 new ResizeObserver(()=>{if(!$('report').hidden)renderCharts();}).observe($('daily-chart'));
-if(!sessionStorage.getItem(tokenKey))expire();else{dateFilters=new DateFilters({timeZone:'Europe/Prague',onChange:load});$('app').hidden=false;load();}
+{dateFilters=new DateFilters({timeZone:'Europe/Prague',onChange:load});$('app').hidden=false;load();}

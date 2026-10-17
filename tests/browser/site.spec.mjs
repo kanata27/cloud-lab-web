@@ -1,6 +1,6 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "../support/browser.mjs";
 
-const API = "https://dupt8l46y1.execute-api.eu-north-1.amazonaws.com";
+const API = "http://127.0.0.1:8787/api";
 const DAY = 86400000;
 function report(url) {
   const selection = Object.fromEntries(new URL(url).searchParams);
@@ -49,36 +49,31 @@ test("homepage keeps QR query, picture, real social links and mobile layout", as
   expect(await page.evaluate(() => window.__cspViolations)).toEqual([]);
 });
 
-test("existing panel URL redirects guests to login; unknown paths are real 404s", async ({ page, request }) => {
+test("existing panel URL redirects guests to login; unknown paths are real 404s", async ({ page, request, context }) => {
+  await context.clearCookies();
   await page.goto("/stat-panel/index.html");
-  await expect(page).toHaveURL(/\/stat-panel\/login(?:\.html)?$/);
+  await expect(page).toHaveURL(/\/test\/access\/login/);
   const response = await request.get("/not-a-real-page");
   expect(response.status()).toBe(404);
   expect((await request.get("/.github/workflows/deploy.yml")).status()).toBe(404);
   expect((await request.get("/site.config.json")).status()).toBe(404);
-  expect((await request.get("/statpanel")).url()).toMatch(/\/stat-panel\/$/);
+  expect((await request.get("/statpanel")).url()).toMatch(/\/test\/access\/login/);
 });
 
-test("login, bearer auth, date filters, charts, mobile view and logout keep working", async ({ page }) => {
+test("Access cookies, date filters, charts, mobile view and logout keep working", async ({ page }) => {
   const errors = [], seen = [];
   page.on("pageerror", error => errors.push(error.message));
   await page.route(`${API}/**`, async route => {
     const request = route.request();
     const headers = { "Access-Control-Allow-Origin": "http://127.0.0.1:8787", "Access-Control-Allow-Headers": "authorization,content-type", "Access-Control-Allow-Methods": "GET,POST,OPTIONS" };
     if (request.method() === "OPTIONS") return route.fulfill({ status: 204, headers });
-    if (new URL(request.url()).pathname === "/login") {
-      expect(request.postDataJSON()).toEqual({ username: "test-admin", password: "test-password" });
-      return route.fulfill({ headers, json: { token: "test-token" } });
-    }
-    expect(request.headers().authorization).toBe("Bearer test-token");
+    expect(request.headers().authorization).toBeUndefined();
+    expect(request.headers().cookie).toContain('test_access=valid');
     seen.push(request.url());
     return route.fulfill({ headers, json: report(request.url()) });
   });
-  await page.goto("/stat-panel/login.html");
+  await page.goto("/stat-panel/");
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.locator("#username").fill("test-admin");
-  await page.locator("#password").fill("test-password");
-  await page.locator("#submit-login").click();
   await expect(page.locator("#views-value")).toHaveText("240");
   await expect(page.locator("#platform-bars .bar-heading")).toHaveCount(3);
   await expect(page.locator("#chart svg")).toHaveCount(1);
@@ -111,16 +106,19 @@ test("login, bearer auth, date filters, charts, mobile view and logout keep work
   expect(await page.evaluate(() => window.__cspViolations)).toEqual([]);
   expect(errors).toEqual([]);
   await page.locator("#logout").click();
-  await expect(page).toHaveURL(/\/stat-panel\/login(?:\.html)?$/);
+  await expect(page).toHaveURL(/\/test\/access\/login/);
   expect(await page.evaluate(() => sessionStorage.getItem("kanata_admin_token"))).toBeNull();
 });
 
-test("expired token is cleared and redirects back to login", async ({ page }) => {
-  await page.goto("/stat-panel/login.html");
-  await page.evaluate(() => sessionStorage.setItem("kanata_admin_token", "expired-test-token"));
-  await page.goto("/stat-panel/");
-  await expect(page).toHaveURL(/\/stat-panel\/login(?:\.html)?$/);
-  expect(await page.evaluate(() => sessionStorage.getItem("kanata_admin_token"))).toBeNull();
+test("an expired Access session cannot reopen the panel from history", async ({ page, context }) => {
+  await page.route(`${API}/**`, route => route.fulfill({json:report(route.request().url())}));
+  await page.goto('/stat-panel/');
+  await expect(page.locator('#report')).toBeVisible();
+  await context.clearCookies();
+  await page.reload();
+  await expect(page).toHaveURL(/\/test\/access\/login/);
+  await page.goto('/stat-panel/earnings');
+  await expect(page).toHaveURL(/\/test\/access\/login/);
 });
 
 test("API outage shows an error without synthetic data", async ({ page }) => {

@@ -1,4 +1,4 @@
-import {test,expect} from '@playwright/test';
+import {test,expect} from '../support/browser.mjs';
 import {trafficReport} from '../support/insights-fixtures.mjs';
 
 test('panels share tab baselines and underline position; mobile date fields stay separate',async({page})=>{
@@ -7,7 +7,7 @@ test('panels share tab baselines and underline position; mobile date fields stay
     sessionStorage.setItem('kanata_admin_token','test-token');window.violations=[];
     document.addEventListener('securitypolicyviolation',e=>window.violations.push(e.violatedDirective));
   });
-  await page.route('https://dupt8l46y1.execute-api.eu-north-1.amazonaws.com/**',async route=>{
+  await page.route('http://127.0.0.1:8787/api/**',async route=>{
     const headers={'Access-Control-Allow-Origin':'http://127.0.0.1:8787','Access-Control-Allow-Headers':'authorization,content-type','Access-Control-Allow-Methods':'GET,OPTIONS'};
     if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers});
     const range=new URL(route.request().url()).searchParams;

@@ -1,7 +1,7 @@
-import {test, expect} from '@playwright/test';
+import {test, expect} from '../support/browser.mjs';
 import {trafficReport, earning} from '../support/insights-fixtures.mjs';
 
-const API = 'https://dupt8l46y1.execute-api.eu-north-1.amazonaws.com';
+const API = 'http://127.0.0.1:8787/api';
 const headers = {'Access-Control-Allow-Origin': 'http://127.0.0.1:8787', 'Access-Control-Allow-Headers': 'authorization,content-type', 'Access-Control-Allow-Methods': 'GET,OPTIONS'};
 
 async function mockAPIs(page, {entries = [], failure = null, delayFirst = false} = {}) {
@@ -9,7 +9,7 @@ async function mockAPIs(page, {entries = [], failure = null, delayFirst = false}
   let first = true;
   await page.route(API + '/**', async route => {
     if (route.request().method() === 'OPTIONS') return route.fulfill({status: 204, headers});
-    expect(route.request().headers().authorization).toBe('Bearer test-token');
+    expect(route.request().headers().authorization).toBeUndefined();
     const range = Object.fromEntries(new URL(route.request().url()).searchParams);
     seen.push(range);
     if (failure === 'auth') return route.fulfill({status: 403, headers, json: {error: 'expired'}});
@@ -176,7 +176,7 @@ for (const failure of ['traffic', 'earnings']) test(`insights hides the combined
   await expect(page.locator('#show')).toBeEnabled();
 });
 
-test('insights expires unauthorized sessions and rejects future dates before requesting data', async ({page}) => {
+test('insights expires unauthorized sessions and rejects future dates before requesting data', async ({page,context}) => {
   const seen = await mockAPIs(page);
   await page.goto('/stat-panel/insights');
   await expect(page.locator('#report')).toBeVisible();
@@ -191,7 +191,6 @@ test('insights expires unauthorized sessions and rejects future dates before req
   expect(await page.evaluate(() => sessionStorage.getItem('kanata_admin_token'))).toBeNull();
   await page.goto('/stat-panel/insights');
   await expect(page).toHaveURL(/login/);
-  await page.evaluate(() => sessionStorage.setItem('kanata_admin_token', 'test-token'));
   await mockAPIs(page, {failure: 'auth'});
   await page.goto('/stat-panel/insights');
   await expect(page).toHaveURL(/login/);

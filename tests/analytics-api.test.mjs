@@ -1,0 +1,72 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createHash,randomUUID} from 'node:crypto';
+import worker from '../worker/index.js';
+import {readStats,cleanupEvents} from '../worker/analytics.js';
+import {parseExport,importSQL,exportSummary} from '../tools/import-analytics.mjs';
+import {database} from './support/database.mjs';
+import {accessEnv} from './support/access-fixture.mjs';
+const session=randomUUID();
+const exportData={Items:[{session_id:{S:session},started_at:{S:'2026-10-03T23:59:00.000000+00:00'},last_seen:{S:'2026-10-04T00:01:00+00:00'},source:{S:'qr'},page_views:{N:'3'},youtube_clicks:{N:'2'},instagram_clicks:{N:'1'},social_clicked:{BOOL:true}}],Count:1};
+const digest=createHash('sha256').update(JSON.stringify(exportData)).digest('hex');
+const report=(db,from='2026-10-03',to='2026-10-04',source='all')=>readStats(new Request(`https://kanata.test/api/stats?from=${from}&to=${to}&source=${source}`),db).then(r=>r.json());
+
+test('legacy import is idempotent, preserves UTC sessions and never overwrites live counters',async()=>{
+  const {sqlite,db}=database(),rows=parseExport(exportData);
+  sqlite.exec(importSQL(rows,digest));sqlite.exec(importSQL(rows,digest));
+  assert.deepEqual(exportSummary(rows),{rows:1,sessions:1,page_views:3,youtube:2,instagram:1,converted_sessions:1,from:'2026-10-03',to:'2026-10-03'});
+  let data=await report(db);
+  assert.deepEqual(data.totals,{page_views:3,sessions:1,outbound_clicks:3,converted_sessions:1,youtube:2,instagram:1});
+  assert.equal(data.daily[0].youtube,2);assert.equal(data.daily[1].youtube,0,'same UTC start-day semantics as Lambda');
+  sqlite.prepare('INSERT INTO analytics_events VALUES(?,?,?,?,?,?)').run(randomUUID(),session,'page_view','direct',null,'2026-10-04T01:00:00.000Z');
+  sqlite.exec(importSQL(rows,digest));
+  data=await report(db);assert.equal(data.totals.page_views,4);assert.equal(data.totals.sessions,1);assert.equal(data.sources.qr,4);
+  const newer=structuredClone(exportData);newer.Items[0].page_views.N='5';
+  sqlite.exec(importSQL(parseExport(newer),digest));sqlite.exec(importSQL(rows,digest));
+  assert.equal((await report(db)).totals.page_views,6,'an old re-import cannot reduce the newer baseline');
+  assert.equal((await report(db,'2026-10-03','2026-10-04','direct')).totals.sessions,0);
+  assert.equal(sqlite.prepare('SELECT COUNT(*) n FROM analytics_imports').get().n,1);
+  const orphan=structuredClone(exportData),orphanID=randomUUID();
+  orphan.Items[0].session_id.S=orphanID;orphan.Items[0].page_views.N='0';
+  delete orphan.Items[0].started_at;delete orphan.Items[0].source;
+  sqlite.exec(importSQL(parseExport(orphan),digest));
+  assert.equal(sqlite.prepare('SELECT source FROM analytics_sessions WHERE session_id=?').get(orphanID).source,null);
+  sqlite.prepare('INSERT INTO analytics_events VALUES(?,?,?,?,?,?)').run(randomUUID(),orphanID,'page_view','qr',null,'2026-10-04T02:00:00.000Z');
+  assert.equal(sqlite.prepare('SELECT source FROM analytics_sessions WHERE session_id=?').get(orphanID).source,'qr','a click-only legacy row does not force direct before its first view');
+  sqlite.close();
+});
+
+test('public events are validated, rate limited, atomic and deduplicated even in click/view races',async()=>{
+  const {sqlite,db}=database();let allowed=true;
+  const env={...accessEnv,EARNINGS_DB:db,EVENTS_RATE_LIMITER:{limit:async()=>({success:allowed})}};
+  const id=randomUUID();
+  const call=(input,{origin='https://kanata.test',type='application/json',method='POST',host='kanata.test'}={})=>worker.fetch(new Request('https://'+host+'/events',{method,headers:{Origin:origin,'Content-Type':type,'CF-Connecting-IP':'192.0.2.1'},body:method==='POST'?JSON.stringify(input):undefined}),env);
+  const click={session_id:id,event_id:randomUUID(),event:'social_click',source:'qr',platform:'youtube'};
+  assert.equal((await call(click)).status,200);assert.equal((await call(click)).status,200);
+  assert.equal((await report(db,new Date().toISOString().slice(0,10),new Date().toISOString().slice(0,10))).totals.sessions,0);
+  const view={session_id:id,event_id:randomUUID(),event:'page_view',source:'qr'};
+  assert.equal((await call(view)).status,200);assert.equal((await call(view)).status,200);
+  const row=sqlite.prepare('SELECT * FROM analytics_sessions WHERE session_id=?').get(id);
+  assert.equal(row.page_views,1);assert.equal(row.youtube_clicks,1);assert.equal(row.source,'qr');assert.ok(row.started_at);
+  const foreign=await call(view,{origin:'https://attacker.invalid'});assert.equal(foreign.status,403);
+  assert.equal((await call(view,{type:'text/plain'})).status,415);
+  for(const bad of [{...view,session_id:'invalid'},{...view,event:'delete'},{...click,platform:'invalid'},{...view,event_id:3},{...view,source:'admin'}])assert.equal((await call(bad)).status,400);
+  assert.equal((await call({...view,padding:'x'.repeat(3000)})).status,413);
+  allowed=false;assert.equal((await call(view)).status,429);allowed=true;
+  assert.equal((await call({...view,event_id:randomUUID()},{host:'www.kanata.test',origin:'https://www.kanata.test'})).status,200);
+  assert.equal((await worker.fetch(new Request('https://kanata.test/events'),env)).status,405);
+  assert.equal((await worker.fetch(new Request('https://kanata.test/events',{method:'POST',headers:{Origin:'https://kanata.test','Content-Type':'application/json'},body:'not json'}),env)).status,400);
+  sqlite.prepare('UPDATE analytics_events SET received_at=?').run('2020-01-01T00:00:00.000Z');
+  await cleanupEvents(db);assert.equal(sqlite.prepare('SELECT COUNT(*) n FROM analytics_events').get().n,0);
+  assert.equal(sqlite.prepare('SELECT page_views FROM analytics_sessions').get().page_views,2,'cleanup never removes historical counters');
+  sqlite.close();
+});
+
+test('incomplete exports, duplicate IDs, unsafe counters and invalid report ranges are rejected',async()=>{
+  for(const data of [{...exportData,LastEvaluatedKey:{}},{...exportData,Count:2},{Items:[...exportData.Items,...exportData.Items]}])assert.throws(()=>parseExport(data));
+  const invalid=structuredClone(exportData);invalid.Items[0].page_views.N='-1';assert.throws(()=>parseExport(invalid));
+  const {sqlite,db}=database();
+  for(const [from,to,source] of [['2026-02-30','2026-03-01','all'],['2026-01-01','2026-12-31','all'],['2026-10-05','2026-10-01','all'],['2026-10-01','2026-10-02','invalid']])await assert.rejects(()=>report(db,from,to,source));
+  const data=await report(db);assert.equal(data.daily.length,2);assert.equal(data.totals.page_views,0);
+  sqlite.close();
+});

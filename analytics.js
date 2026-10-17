@@ -1,10 +1,10 @@
 (() => {
   "use strict";
   const config = window.KANATA_CONFIG;
-  // Keep preview/local visits out of real statistics. This is not an API
-  // access control: the ingestion Lambda must validate input independently.
+  // Only configured sites record events. Preview uses its own same-origin D1.
+  // This is not access control: the Worker validates and limits every event.
   if (!config?.analyticsOrigins.includes(window.location.origin)) return;
-  const analyticsUrl = `${config.apiBase}/events`;
+  const analyticsUrl = config.eventsPath;
   const source = new URLSearchParams(window.location.search).has("q") ? "qr" : "direct";
   let sessionId;
   function getSessionId() {
@@ -27,7 +27,7 @@
         method: "POST",
         credentials: "omit",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ session_id: getSessionId(), event, source, ...extra }),
+        body: JSON.stringify({ session_id: getSessionId(), event_id: crypto.randomUUID(), event, source, ...extra }),
         keepalive: true,
         signal: AbortSignal.timeout?.(8000),
       });

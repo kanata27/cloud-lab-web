@@ -10,7 +10,7 @@ export const publicFiles = [
   ["index.html", "index.html"],
   ["style.css", "style.css"],
   ["analytics.js", "analytics.js"],
-  ...["index.html", "login.html", "dashboard.js", "login.js", "dashboard.css", "login.css", "earnings.html", "earnings.css", "earnings.js", "earnings-model.js", "date-filter.js", "date-filter.css", "insights.html", "insights.css", "insights.js", "insights-model.js", "panel-typography.css"]
+  ...["index.html", "login.html", "dashboard.js", "login.js", "session.js", "dashboard.css", "login.css", "earnings.html", "earnings.css", "earnings.js", "earnings-model.js", "date-filter.js", "date-filter.css", "insights.html", "insights.css", "insights.js", "insights-model.js", "panel-typography.css"]
     .map(name => [`statistics-panel/${name}`, `stat-panel/${name}`]),
   ...["golos-text-cyrillic-ext-wght-normal.woff2", "golos-text-cyrillic-wght-normal.woff2", "golos-text-latin-ext-wght-normal.woff2", "golos-text-latin-wght-normal.woff2", "OFL-Golos-Text.txt"]
     .map(name => [`statistics-panel/fonts/${name}`, `stat-panel/fonts/${name}`]),
@@ -20,10 +20,8 @@ export const publicFiles = [
 ];
 
 export function validateConfig(config) {
-  const api = new URL(config.apiBase);
-  if (api.protocol !== "https:" || api.username || api.password || api.search || api.hash
-      || config.apiBase.endsWith("/") || !Array.isArray(config.analyticsOrigins)) {
-    throw new Error("Invalid site.config.json: use an HTTPS API base without a trailing slash.");
+  if (config.apiBase !== "/api" || config.eventsPath !== "/events" || !Array.isArray(config.analyticsOrigins)) {
+    throw new Error("Use same-origin /api and /events endpoints.");
   }
   for (const origin of config.analyticsOrigins) {
     const url = new URL(origin);
@@ -33,12 +31,11 @@ export function validateConfig(config) {
 }
 
 export function securityHeaders(config) {
-  const apiOrigin = new URL(config.apiBase).origin;
   const csp = ["default-src 'self'", "base-uri 'none'", "object-src 'none'", "frame-ancestors 'none'",
     "form-action 'none'", "script-src 'self'", "script-src-attr 'none'",
     "style-src 'self' https://fonts.googleapis.com", "style-src-attr 'none'",
     "font-src 'self' https://fonts.gstatic.com", "img-src 'self' data:",
-    `connect-src 'self' ${apiOrigin}`].join("; ");
+    "connect-src 'self'"].join("; ");
   return `/*
   Content-Security-Policy: ${csp}
   X-Content-Type-Options: nosniff

@@ -1,8 +1,8 @@
+import {accessFetch,sessionEnded,logout} from './session.js';
 import {DateFilters, fullDate} from './date-filter.js';
 import {splitRanges, validateTrafficReport, buildInsights, byWeeks, axisScale} from './insights-model.js';
 
 const $ = id => document.getElementById(id);
-const tokenKey = 'kanata_admin_token';
 const integer = new Intl.NumberFormat('ru-RU');
 const amount = new Intl.NumberFormat('ru-RU', {maximumFractionDigits: 2});
 const hourly = new Intl.NumberFormat('ru-RU', {maximumFractionDigits: 1});
@@ -29,20 +29,16 @@ function message(text, error = false) {
 }
 function expire() {
   controller?.abort();
-  sessionStorage.removeItem(tokenKey);
   report = chart = null;
   $('app').hidden = true;
   $('report').hidden = true;
   $('insights-chart').querySelector('svg')?.remove();
   hideTooltip();
-  location.replace('/stat-panel/login.html');
+  sessionEnded();
 }
 async function readJSON(url, signal, label) {
-  const token = sessionStorage.getItem(tokenKey);
-  if (!token) { expire(); throw new Error('Войди в панель заново.'); }
-  const response = await fetch(url, {
-    cache: 'no-store', credentials: 'omit',
-    headers: {Accept: 'application/json', Authorization: `Bearer ${token}`},
+  const response = await accessFetch(url, {
+    headers: {Accept: 'application/json'},
     signal: AbortSignal.any([signal, AbortSignal.timeout(20000)]),
   });
   if (response.status === 401 || response.status === 403) { expire(); throw new Error('Сессия истекла.'); }
@@ -201,11 +197,9 @@ document.querySelectorAll('[data-group]').forEach(button => button.addEventListe
   document.querySelectorAll('[data-group]').forEach(item => item.setAttribute('aria-pressed', String(item === button)));
   hideTooltip(); drawChart();
 }));
-$('logout').addEventListener('click', expire);
-window.addEventListener('pageshow', event => { if (event.persisted && !sessionStorage.getItem(tokenKey)) expire(); });
+$('logout').addEventListener('click', logout);
 new ResizeObserver(() => drawChart()).observe($('insights-chart'));
-if (!sessionStorage.getItem(tokenKey)) expire();
-else {
+{
   // /stats currently supplies UTC daily buckets; keep its date boundaries.
   filters = new DateFilters({timeZone: 'UTC', onChange: load});
   $('app').hidden = false;
