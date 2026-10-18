@@ -1,5 +1,6 @@
 import earnings from './earnings.js';
 import {authorize} from './access.js';
+import {accessPage} from './access-page.js';
 import {acceptEvent, readStats, cleanupEvents} from './analytics.js';
 import {fail, json, noStore, requireSameOrigin} from './http.js';
 
@@ -15,6 +16,16 @@ export default {
       if (/[\\\u0000%]/.test(path)) fail('Некорректный адрес.');
       if (!env.CANONICAL_HOST || ![env.CANONICAL_HOST,...(env.PUBLIC_ALIASES || '').split(',').filter(Boolean)].includes(url.host)) {
         return json({error:'Неизвестный адрес сайта.'},404);
+      }
+      // A public recovery page contains no reports and remains reachable even
+      // when a stale session or an unavailable database blocks the private UI.
+      if (/^\/panel-login\/?$/.test(path)) {
+        if (!['GET','HEAD'].includes(request.method)) return json({error:'Метод не поддерживается.'},405);
+        if (url.host !== env.CANONICAL_HOST) {
+          return noStore(Response.redirect(`https://${env.CANONICAL_HOST}/panel-login/`,302));
+        }
+        const reason = url.searchParams.get('reason');
+        return accessPage(200, {reason:['expired','denied'].includes(reason) ? reason : 'entry',head:request.method === 'HEAD'});
       }
       const page = privatePage(path), api = privateAPI(path);
       if (!page && !api && path !== '/events') return env.ASSETS.fetch(request);
@@ -57,10 +68,7 @@ export default {
       const status = Number.isInteger(error.status) ? error.status : 500;
       if (status === 500) console.error('Request failed', {path, code:error.code || error.name});
       if (path && privatePage(path) && request.headers.get('Accept')?.includes('text/html')) {
-        const text = status === 503 ? 'Вход в панель пока не настроен или временно недоступен.' : 'Доступ к панели закрыт. Войди через Cloudflare Access.';
-        return noStore(new Response(`<!doctype html><html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>kanata · доступ закрыт</title><h1>Доступ закрыт</h1><p>${text}</p><a href="/">На сайт</a></html>`, {
-          status,headers:{'Content-Type':'text/html; charset=utf-8','Content-Security-Policy':"default-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'"},
-        }));
+        return accessPage(status, {head:request.method === 'HEAD'});
       }
       return json({error:status===500?'Внутренняя ошибка сервера.':error.message},status);
     }

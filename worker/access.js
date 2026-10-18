@@ -6,17 +6,23 @@ const keySets = new Map();
 export function accessSettings(env) {
   const team = env.ACCESS_TEAM_DOMAIN;
   const audience = env.ACCESS_AUD;
-  const email = env.ACCESS_ALLOWED_EMAIL?.trim().toLowerCase();
+  // Keep existing deployments working until the plural secret is configured.
+  // A present but invalid new value must never fall back to an older allowlist.
+  const configured = env.ACCESS_ALLOWED_EMAILS === undefined ? env.ACCESS_ALLOWED_EMAIL : env.ACCESS_ALLOWED_EMAILS;
+  const values = typeof configured === 'string' && configured.length <= 4096
+    ? configured.split(',').map(value => value.trim().toLowerCase()) : [];
+  const emails = new Set(values);
   if (typeof team !== 'string' || !/^https:\/\/[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.cloudflareaccess\.com$/.test(team)
       || typeof audience !== 'string' || !/^[a-f0-9]{64}$/i.test(audience)
-      || !email || email.length > 254 || !/^[^\s@,]+@[^\s@,]+\.[^\s@,]+$/.test(email)) {
+      || values.length < 1 || values.length > 8
+      || values.some(email => email.length > 254 || !/^[^\s@,;*<>]+@[^\s@,;*<>]+\.[^\s@,;*<>]+$/.test(email))) {
     fail('Доступ к панели ещё не настроен.', 503);
   }
-  return {team, audience, email};
+  return {team, audience, emails};
 }
 
 export async function authorize(request, env) {
-  const {team, audience, email} = accessSettings(env);
+  const {team, audience, emails} = accessSettings(env);
   // A decoded token or an email header is never proof of identity.
   // No bearer-token, service-token, or development bypass exists.
   const token = request.headers.get('Cf-Access-Jwt-Assertion');
@@ -47,7 +53,7 @@ export async function authorize(request, env) {
     if (error.status === 503 || error.code === 'ERR_JWKS_TIMEOUT') fail('Сервис проверки входа временно недоступен.', 503);
     fail('Сессия истекла или недействительна.', 401);
   }
-  if (payload.type !== 'app' || typeof payload.email !== 'string'
-      || payload.email.trim().toLowerCase() !== email) fail('Нет доступа к этой панели.', 403);
+  const email = typeof payload.email === 'string' ? payload.email.trim().toLowerCase() : '';
+  if (payload.type !== 'app' || !emails.has(email)) fail('Этот аккаунт не допущен к панели.', 403);
   return {email, subject: payload.sub};
 }

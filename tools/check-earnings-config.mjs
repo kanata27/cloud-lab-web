@@ -14,5 +14,5 @@ if(process.env.CLOUDFLARE_API_TOKEN&&process.env.CLOUDFLARE_ACCOUNT_ID){
  const response=await fetch(url,{headers:{Authorization:'Bearer '+process.env.CLOUDFLARE_API_TOKEN},signal:AbortSignal.timeout(10000),redirect:'error'});
  if(!response.ok)throw Error('Cannot inspect the existing Worker secret names. Check the Cloudflare token permissions.');
  const data=await response.json();
- if(!data.success||!data.result?.some(s=>s.name==='ACCESS_ALLOWED_EMAIL'))throw Error('Add the ACCESS_ALLOWED_EMAIL Worker secret before deployment.');
+ if(!data.success||!data.result?.some(s=>['ACCESS_ALLOWED_EMAILS','ACCESS_ALLOWED_EMAIL'].includes(s.name)))throw Error('Add the ACCESS_ALLOWED_EMAILS Worker secret before deployment.');
 }
