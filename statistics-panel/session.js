@@ -1,3 +1,5 @@
+import './panel-environment.js';
+
 // Access keeps its session in an HttpOnly cookie, not in JavaScript storage.
 // Clean up the old AWS token without reusing it as an authentication fallback.
 try { sessionStorage.removeItem('kanata_admin_token'); } catch {}

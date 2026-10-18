@@ -1,5 +1,5 @@
 import {accessFetch,sessionEnded,logout} from './session.js';
-import {DEFAULT_CURRENCIES,today,duration,validateEntry,convert,summary} from './earnings-model.js';
+import {DEFAULT_CURRENCIES,WEEKDAYS,weekdayIndex,today,duration,validateEntry,convert,summary} from './earnings-model.js';
 import {DateFilters} from './date-filter.js';
 const $=id=>document.getElementById(id);
 const number=new Intl.NumberFormat('ru-RU',{maximumFractionDigits:2}),one=new Intl.NumberFormat('ru-RU',{maximumFractionDigits:1});
@@ -101,7 +101,7 @@ function render(){
  $('empty').hidden=entries.length>0;$('entries-table').hidden=!entries.length;
  const body=$('entries-body');body.replaceChildren();
  for(const entry of entries){
-  const tr=node('tr');tr.append(node('td',entry.date.split('-').reverse().join('.')));
+  const tr=node('tr');tr.append(node('td',entry.date.split('-').reverse().join('.')),node('td',WEEKDAYS[weekdayIndex(entry.date)],'entry-weekday'));
   const time=node('td',`${entry.start}–${entry.end}`);time.append(node('small',hours(entry.minutes)));tr.append(time);
   tr.append(node('td',spots.find(s=>s.id===entry.spotId)?.name||'Точка'));
   tr.append(node('td',entry.amounts.filter(a=>a.minor>0).map(a=>money(a.minor,a.currency)).join(' · ')||'0 CZK'));
