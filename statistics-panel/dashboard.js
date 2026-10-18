@@ -1,9 +1,9 @@
 import {accessFetch,sessionEnded,logout} from './session.js';
-import {DateCalendar, fullDate} from "./date-filter.js";
+import {DateCalendar, fullDate, presetRange} from "./date-filter.js";
+import {assertReport,loadTrafficReport} from './report-loader.js';
 "use strict";
 const API_BASE = window.KANATA_CONFIG.apiBase;
 const DAY = 86400000;
-const MAX_DAYS = 90;
 
 function todayInZone(timeZone, now = new Date()) {
   const parts = new Intl.DateTimeFormat("en-US", {
@@ -25,49 +25,9 @@ function validateRange(from, to, today) {
   if (from > to) throw new Error("Начало периода должно быть раньше его окончания.");
   if (to > today) throw new Error("Конец периода не может быть позже сегодняшнего дня.");
   const days = (Date.parse(to) - Date.parse(from)) / DAY + 1;
-  if (days > MAX_DAYS) throw new Error(`Выбери период не длиннее ${MAX_DAYS} дней.`);
   return days;
 }
 
-function assertReport(data, selection, timeZone) {
-  const count = value => Number.isSafeInteger(value) && value >= 0;
-  const totals = data?.totals;
-  const expectedDays = (Date.parse(selection.to) - Date.parse(selection.from)) / DAY + 1;
-  if (data?.version !== 1 || data?.range?.from !== selection.from
-      || data?.range?.to !== selection.to || data?.range?.source !== selection.source
-      || data?.range?.time_zone !== timeZone || !totals
-      || !Number.isFinite(Date.parse(data.generated_at))
-      || !Array.isArray(data.daily) || data.daily.length !== expectedDays) {
-    throw new Error("API вернул отчёт в неожиданном формате.");
-  }
-  const fields = ["page_views", "sessions", "outbound_clicks", "converted_sessions", "youtube", "instagram"];
-  if (!fields.every(key => count(totals[key]))
-      || totals.converted_sessions > totals.sessions
-      || totals.outbound_clicks !== totals.youtube + totals.instagram
-      || !data.sources || !["qr", "direct"].every(key => count(data.sources[key]))) {
-    throw new Error("В отчёте обнаружены некорректные показатели.");
-  }
-  for (const [index, day] of data.daily.entries()) {
-    if (day.date !== addDays(selection.from, index)
-        || !["page_views", "sessions", "outbound_clicks", "youtube", "instagram"].every(key => count(day[key]))
-        || day.outbound_clicks !== day.youtube + day.instagram) {
-      throw new Error("В ежедневной статистике обнаружена ошибка.");
-    }
-  }
-  for (const key of ["page_views", "outbound_clicks", "youtube", "instagram"]) {
-    if (data.daily.reduce((sum, day) => sum + day[key], 0) !== totals[key]) {
-      throw new Error("Суммы за период и по дням не совпадают.");
-    }
-  }
-  if (data.sources.qr + data.sources.direct !== totals.page_views) {
-    throw new Error("Распределение источников не совпадает с числом просмотров.");
-  }
-  if (!data.destinations || !["instagram_only", "youtube_only", "both"].every(key => count(data.destinations[key]))
-      || Object.values(data.destinations).reduce((sum, value) => sum + value, 0) !== totals.converted_sessions) {
-    throw new Error("В распределении переходов обнаружена ошибка.");
-  }
-  return data;
-}
 
 
 const integer = new Intl.NumberFormat("ru-RU");
@@ -110,11 +70,11 @@ class Dashboard {
     byId("filters").addEventListener("submit", event => {
       event.preventDefault(); this.load();
     });
-    for (const button of document.querySelectorAll("[data-days]")) {
-      button.addEventListener("click", () => { this.setPreset(Number(button.dataset.days)); this.load(); });
+    for (const button of document.querySelectorAll("[data-days], [data-months]")) {
+      button.addEventListener("click", () => { this.setPreset({days:Number(button.dataset.days),months:Number(button.dataset.months)}); this.load(); });
     }
     for (const id of ["from", "to"]) byId(id).addEventListener("input", () => {
-      for (const button of document.querySelectorAll("[data-days]")) button.setAttribute("aria-pressed", "false");
+      for (const button of document.querySelectorAll("[data-days], [data-months]")) button.setAttribute("aria-pressed", "false");
     });
     byId("source").addEventListener("change", () => this.load());
     this.resizeObserver = new ResizeObserver(() => { if (this.data) this.drawChart(); });
@@ -137,22 +97,24 @@ class Dashboard {
     for (const id of ["from", "to"]) byId(id).disabled = mode === "day";
     for (const button of document.querySelectorAll("[data-mode]")) button.setAttribute("aria-pressed", String(button.dataset.mode === mode));
     byId("date-value").textContent = fullDate(this.singleDate);
-    byId("range-note").textContent = mode === "day" ? "Статистика за один день" : "До 90 дней за запрос";
   }
 
   syncPresets() {
     const today = todayInZone(this.timeZone);
-    for (const button of document.querySelectorAll("[data-days]")) {
-      const matches = byId("from").value === addDays(today, 1 - Number(button.dataset.days)) && byId("to").value === today;
+    for (const button of document.querySelectorAll("[data-days], [data-months]")) {
+      const range=presetRange(today,{days:Number(button.dataset.days),months:Number(button.dataset.months)});
+      const matches = byId("from").value === range.from && byId("to").value === range.to;
       button.setAttribute("aria-pressed", String(matches));
     }
   }
 
-  setPreset(days) {
+  setPreset(preset) {
+    if(typeof preset==="number")preset={days:preset};
+    const days=preset.days;
     const today = todayInZone(this.timeZone);
     this.singleDate = today;
     this.setMode(days === 1 ? "day" : "period");
-    byId("from").value = addDays(today, 1 - days);
+    byId("from").value = presetRange(today,preset).from;
     byId("to").value = today;
     if (days !== 1) this.savedRange = { from: byId("from").value, to: today };
     this.syncPresets();
@@ -190,7 +152,7 @@ class Dashboard {
       validateRange(selection.from, selection.to, today);
       byId("dashboard").setAttribute("aria-busy", "true");
       this.message("Загружаем статистику…");
-      const response = await this.fetchReport(selection, controller.signal);
+      const response = await loadTrafficReport(selection, this.fetchReport, controller.signal);
       if (this.controller !== controller || controller.signal.aborted) return;
       this.data = assertReport(response, selection, this.timeZone);
       byId("report").hidden = false;
@@ -234,7 +196,7 @@ class Dashboard {
       const row = document.createElement("div");
       const heading = document.createElement("div"); heading.className = "bar-heading";
       const name = document.createElement("span"); name.textContent = label;
-      const count = document.createElement("b");
+      const count = document.createElement("span"); count.className="bar-value";
       count.textContent = `${integer.format(value)} · ${total ? percent.format(value / total) : "—"}`;
       heading.append(name, count);
       const track = document.createElement("div"); track.className = "bar-track"; track.setAttribute("aria-hidden", "true");

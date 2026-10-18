@@ -1,7 +1,7 @@
 /* Shared date/period controls: matches the Visits panel. */
 .filter-panel,.calendar-dialog {
   --bg:#eeece7; --surface:#faf9f6; --ink:#242724; --muted:#676a65;
-  --line:#d9dbd3; --accent:#557665; --accent-soft:#e7ede8;
+  --line:#d9dbd3; --accent:#b87560; --accent-soft:#f4e6df;
 }
 :where(.filter-panel,.calendar-dialog) button {
   min-height:44px; border:1px solid transparent; border-radius:8px;
@@ -101,7 +101,7 @@
 @media(prefers-color-scheme:dark) {
   .filter-panel,.calendar-dialog {
     --bg:#20231f; --surface:#282c27; --ink:#eeeee7; --muted:#b0b6aa;
-    --line:#42483e; --accent:#91b39b; --accent-soft:#343b32;
+    --line:#42483e; --accent:#d9a58f; --accent-soft:#343b32;
   }
 }
 @media(max-width:760px) {
@@ -110,7 +110,7 @@
   .filter-fields > button { min-width:122px; min-height:48px; }
   .filter-toolbar { gap:12px; }
   .filter-panel { padding:16px; }
-  .filter-toolbar .presets { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; width:100%; }
+  .filter-toolbar .presets { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; width:100%; }
   .filter-toolbar .presets button { font-size:12px; padding:7px 6px; min-height:46px; }
   .mode-switch { width:100%; }
   .mode-switch button { flex:1; min-height:44px; font-size:14px; }

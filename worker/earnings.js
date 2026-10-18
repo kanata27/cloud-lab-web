@@ -1,5 +1,5 @@
 import {body,fail} from './http.js';
-import {dateValid,today,validateEntry,convert} from '../statistics-panel/earnings-model.js';
+import {dateValid,today,validateEntry,validateNote,convert} from '../statistics-panel/earnings-model.js';
 const PREFIX='/earnings-api';
 const json=(data,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','X-Frame-Options':'DENY','Content-Security-Policy':"default-src 'none'; frame-ancestors 'none'",'Vary':'Authorization'}});
 function spotName(data){
@@ -24,7 +24,24 @@ export async function ratesFor(date,db,fetcher=fetch) {
   await db.prepare('INSERT INTO earnings_rates(date,payload,fetched_at) VALUES(?,?,?) ON CONFLICT(date) DO UPDATE SET payload=excluded.payload,fetched_at=excluded.fetched_at').bind(date,JSON.stringify(snapshot),new Date().toISOString()).run();
   return snapshot;
 }
-function entryOf(row){return {...JSON.parse(row.payload),id:row.id,version:row.version,createdAt:row.created_at,updatedAt:row.updated_at};}
+function entryOf(row){return {note:'',...JSON.parse(row.payload),id:row.id,version:row.version,createdAt:row.created_at,updatedAt:row.updated_at};}
+const ENTRY_PAGE_SIZE=1000;
+function entryCursor(row,range){
+  return btoa(JSON.stringify({...range,date:row.date,createdAt:row.created_at,id:row.id})).replaceAll('+','-').replaceAll('/','_').replace(/=+$/,'');
+}
+function readEntryCursor(value,range){
+  if(value===null)return null;
+  let cursor;
+  try{
+    if(!/^[\w-]{1,2048}$/.test(value))throw new Error();
+    cursor=JSON.parse(atob(value.replaceAll('-','+').replaceAll('_','/')));
+    if(!cursor||cursor.from!==range.from||cursor.to!==range.to||cursor.spot!==range.spot
+      ||!dateValid(cursor.date)||cursor.date<range.from||cursor.date>range.to
+      ||typeof cursor.createdAt!=='string'||cursor.createdAt.length>64||!Number.isFinite(Date.parse(cursor.createdAt))
+      ||typeof cursor.id!=='string'||!/^[\w-]{1,64}$/.test(cursor.id))throw new Error();
+  }catch{fail('Список выступлений изменился. Обнови отчёт.');}
+  return cursor;
+}
 export default {async fetch(request,env) {
   const url=new URL(request.url);
   if(!url.pathname.startsWith(PREFIX+'/')) return env.ASSETS.fetch(request);
@@ -36,6 +53,21 @@ export default {async fetch(request,env) {
     if(!env.EARNINGS_DB) fail('Хранилище заработков ещё не подключено.',503);
     const db=env.EARNINGS_DB,path=url.pathname.slice(PREFIX.length);
     if(path==='/rates'&&request.method==='GET') return json(await ratesFor(url.searchParams.get('date'),db));
+    if(path==='/calendar'&&request.method==='GET'){
+      const year=url.searchParams.get('year');
+      if(!/^\d{4}$/.test(year||'')||Number(year)<2000||Number(year)>Number(today().slice(0,4))) fail('Выбери год от 2000 до текущего.');
+      // Aggregate in D1: a full year needs no private notes or 2000-entry limit.
+      const {results}=await db.prepare(`SELECT e.date,
+        SUM(json_extract(e.payload,'$.czkMinor')) AS czkMinor,
+        SUM(json_extract(e.payload,'$.eurMinor')) AS eurMinor,
+        SUM(json_extract(e.payload,'$.minutes')) AS minutes,COUNT(*) AS count,
+        json_group_array(DISTINCT s.name) AS spots
+        FROM earnings_entries e LEFT JOIN earnings_spots s ON s.id=e.spot_id
+        WHERE e.date BETWEEN ? AND ? GROUP BY e.date ORDER BY e.date`)
+        .bind(year+'-01-01',year+'-12-31').all();
+      return json({year:Number(year),days:results.map(row=>({...row,
+        spots:JSON.parse(row.spots).map(name=>name||'Без точки').sort((a,b)=>a.localeCompare(b,'ru'))}))});
+    }
     if(path==='/spots'&&request.method==='GET') return json({spots:(await db.prepare('SELECT id,name FROM earnings_spots ORDER BY name').all()).results});
     if(path==='/spots'&&request.method==='POST'){
       const name=spotName(await body(request));
@@ -56,10 +88,32 @@ export default {async fetch(request,env) {
     }
     if(path==='/entries'&&request.method==='GET'){
       const from=url.searchParams.get('from'),to=url.searchParams.get('to'),spot=url.searchParams.get('spot')||'';
-      if(!dateValid(from)||!dateValid(to)||from>to||(Date.parse(to)-Date.parse(from))/86400000>366) fail('Выбери период не длиннее года.');
-      const rows=await db.prepare('SELECT * FROM earnings_entries WHERE date BETWEEN ? AND ? AND (? = \'\' OR spot_id=?) ORDER BY date DESC,created_at DESC LIMIT 2001').bind(from,to,spot,spot).all();
-      if(rows.results.length>2000) fail('Слишком много записей. Сократи период.');
-      return json({entries:rows.results.map(entryOf)});
+      if(!dateValid(from)||!dateValid(to)||from>to)fail('Выбери корректный период.');
+      if(spot&&!/^[\w-]{1,64}$/.test(spot))fail('Некорректная точка.');
+      const range={from,to,spot},cursor=readEntryCursor(url.searchParams.get('cursor'),range);
+      const conditions=['date BETWEEN ? AND ?'],args=[from,to];
+      if(spot){conditions.push('spot_id=?');args.push(spot);}
+      if(cursor){
+        conditions.push('(date < ? OR (date=? AND created_at<?) OR (date=? AND created_at=? AND id<?))');
+        args.push(cursor.date,cursor.date,cursor.createdAt,cursor.date,cursor.createdAt,cursor.id);
+      }
+      const {results}=await db.prepare(`SELECT * FROM earnings_entries WHERE ${conditions.join(' AND ')} ORDER BY date DESC,created_at DESC,id DESC LIMIT ?`)
+        .bind(...args,ENTRY_PAGE_SIZE+1).all();
+      const rows=results.slice(0,ENTRY_PAGE_SIZE);
+      return json({entries:rows.map(entryOf),nextCursor:results.length>ENTRY_PAGE_SIZE?entryCursor(rows.at(-1),range):null});
+    }
+    const noteMatch=path.match(/^\/entries\/([\w-]{1,64})\/note$/);
+    if(noteMatch&&request.method==='PUT'){
+      const input=await body(request),id=noteMatch[1];
+      const previous=await db.prepare('SELECT * FROM earnings_entries WHERE id=?').bind(id).first();
+      if(!previous) fail('Выступление не найдено. Обнови страницу.',404);
+      if(!Number.isInteger(input.version)||input.version!==previous.version) fail('Выступление изменено в другой вкладке. Обнови страницу перед сохранением заметки.',409);
+      let note;try{note=validateNote(input.note);}catch(error){fail(error.message);}
+      // Keep money, rates and timing exactly as stored; notes need no FX lookup.
+      const payload=JSON.stringify({...JSON.parse(previous.payload),note});
+      const result=await db.prepare('UPDATE earnings_entries SET payload=?,version=version+1,updated_at=? WHERE id=? AND version=?').bind(payload,new Date().toISOString(),id,input.version).run();
+      if(result.meta.changes!==1) fail('Выступление уже изменено. Обнови страницу перед сохранением заметки.',409);
+      return json(entryOf(await db.prepare('SELECT * FROM earnings_entries WHERE id=?').bind(id).first()));
     }
     const match=path.match(/^\/entries\/([\w-]{1,64})$/);
     if((path==='/entries'&&request.method==='POST')||(match&&request.method==='PUT')){
@@ -68,7 +122,7 @@ export default {async fetch(request,env) {
       const previous=await db.prepare('SELECT * FROM earnings_entries WHERE id=?').bind(id).first();
       if(match&&!previous) fail('Запись не найдена.',404);
       if(match&&(!Number.isInteger(input.version)||input.version!==previous.version)) fail('Запись изменена в другой вкладке. Обнови страницу.',409);
-      let record;try{record=validateEntry(input);}catch(error){fail(error.message);}
+      let record;try{record=validateEntry({...input,note:input.note===undefined&&previous?entryOf(previous).note:input.note});}catch(error){fail(error.message);}
       const spot=await db.prepare('SELECT id FROM earnings_spots WHERE id=?').bind(record.spotId).first();
       if(!spot) fail('Эта точка не найдена.');
       const old=previous?entryOf(previous):null;

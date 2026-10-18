@@ -23,6 +23,7 @@ async function mockAPIs(page, {entries = [], failure = null, delayFirst = false}
   await page.route('**/earnings-api/**', async route => {
     const url = new URL(route.request().url());
     expect(route.request().method()).toBe('GET');
+    if (url.pathname.endsWith('/calendar')) return route.fulfill({json: {year: Number(url.searchParams.get('year')), days: []}});
     if (failure === 'earnings') return route.fulfill({status: 503, json: {error: 'unavailable'}});
     const result = url.pathname.endsWith('/spots') ? {spots: [{id: 'spot-a', name: 'Anděl'}]}
       : {entries: entries.filter(entry => entry.date >= url.searchParams.get('from') && entry.date <= url.searchParams.get('to'))};
@@ -106,7 +107,7 @@ test('earnings copies Visits date/period controls, restores range and queries th
   await expect(page.locator('#report')).toBeVisible();
   await page.locator('[data-mode="day"]').click();
   await expect(page.locator('#date-calendar')).toBeVisible();
-  await page.locator('[data-date="2026-10-03"]').click();
+  await page.locator('#date-calendar [data-date="2026-10-03"]').click();
   await expect(page.locator('#date-value')).toContainText('3 октября');
   await expect(page.locator('#from')).toHaveValue('2026-10-03');
   await expect(page.locator('#to')).toHaveValue('2026-10-03');
@@ -137,8 +138,8 @@ test('insights selects a past day in the shared calendar and restores the exact 
   await expect(page.locator('#views-value')).toHaveText('736');
   await page.locator('[data-mode="day"]').click();
   await expect(page.locator('#date-calendar')).toBeVisible();
-  await expect(page.locator('[data-date="2026-10-10"]')).toBeDisabled();
-  await page.locator('[data-date="2026-10-03"]').click();
+  await expect(page.locator('#date-calendar [data-date="2026-10-10"]')).toBeDisabled();
+  await page.locator('#date-calendar [data-date="2026-10-03"]').click();
   await expect(page.locator('#date-calendar')).toBeHidden();
   await expect(page.locator('#open-calendar')).toBeFocused();
   await expect(page.locator('#date-value')).toContainText('3 октября 2026');
@@ -151,7 +152,7 @@ test('insights selects a past day in the shared calendar and restores the exact 
   expect(seen.at(-1)).toEqual({from:'2026-10-03',to:'2026-10-03',source:'all'});
   await page.locator('#open-calendar').click();
   await page.locator('#calendar-month').selectOption('8');
-  await page.locator('[data-date="2026-09-12"]').click();
+  await page.locator('#date-calendar [data-date="2026-09-12"]').click();
   await expect(page.locator('#date-value')).toContainText('12 сентября');
   await expect(page.locator('#total-czk')).toHaveText('0 Kč');
   await page.locator('[data-mode="period"]').click();

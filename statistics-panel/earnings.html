@@ -3,15 +3,15 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow,noarchive"><meta name="color-scheme" content="light dark">
-<title>Заработки</title><link rel="icon" href="/assets/favicon.svg"><link rel="stylesheet" href="/stat-panel/earnings.css?v=20261018-1"><link rel="stylesheet" href="/stat-panel/date-filter.css">
-<script src="/site-config.js" defer></script><script type="module" src="/stat-panel/earnings.js?v=20261010-4"></script>
+<title>Заработки</title><link rel="icon" href="/assets/favicon.svg"><link rel="stylesheet" href="/stat-panel/earnings.css?v=20261018-4"><link rel="stylesheet" href="/stat-panel/date-filter.css">
+<script src="/site-config.js" defer></script><script type="module" src="/stat-panel/earnings.js?v=20261018-4"></script>
   <link rel="preload" href="/stat-panel/fonts/golos-text-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/stat-panel/fonts/golos-text-cyrillic-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="/stat-panel/panel-typography.css?v=20261010-3">
+  <link rel="stylesheet" href="/stat-panel/panel-typography.css?v=20261018-4">
 </head>
 <body class="panel-page">
 <main class="shell earnings-shell" id="app" hidden>
-<header class="masthead"><a class="brand" href="/"><img src="/assets/kanata-logo.svg" alt="kanata" width="150" height="40"></a><nav aria-label="Панель управления"><a href="/stat-panel/earnings.html" aria-current="page">Заработки</a><a href="/stat-panel/insights">Инсайты</a><a href="/stat-panel/">Посещения</a></nav><button id="logout" class="quiet">Выйти</button>
+<header class="masthead"><a class="brand" href="/"><img src="/assets/kanata-logo.svg" alt="kanata" width="150" height="40"></a><nav aria-label="Панель управления"><a href="/stat-panel/earnings.html" aria-current="page">Заработки</a><a href="/stat-panel/">Посещения</a><a href="/stat-panel/insights">Инсайты</a></nav><button id="logout" class="quiet">Выйти</button>
 <div class="earnings-actions"><button id="add-entry" class="primary add-entry-fab" type="button" aria-label="Добавить выступление" aria-haspopup="dialog" aria-controls="entry-dialog"><svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true" focusable="false"><path d="M12 4v16M4 12h16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square"/></svg></button></div>
 </header>
 <form id="filters" class="filter-panel earnings-filters">
@@ -22,8 +22,9 @@
           </div>
           <div class="presets" aria-label="Быстрый выбор периода">
             <button type="button" data-days="1" class="quiet" aria-pressed="false">Сегодня</button>
-            <button type="button" data-days="7" class="quiet" aria-pressed="false">Последняя неделя</button>
-            <button type="button" data-days="30" class="quiet" aria-pressed="true">Последний месяц</button>
+            <button type="button" data-days="7" class="quiet" aria-pressed="false">Неделя</button>
+            <button type="button" data-days="30" class="quiet" aria-pressed="true">Месяц</button>
+            <button type="button" data-months="3" class="quiet" aria-pressed="false">3 месяца</button>
           </div>
         </div>
         <div class="filter-fields">
@@ -43,11 +44,11 @@
           <label class="source-field">Точка<select id="filter-spot"><option value="">Все точки</option></select></label>
           <button type="submit" class="primary" id="show">Показать</button>
         </div>
-        <p class="filter-note muted"><span id="range-note">До года за запрос</span> · время <span id="time-zone">Праги</span></p>
+        <p class="filter-note muted">Время <span id="time-zone">Праги</span></p>
       </form>
 <div id="message" role="status" class="message" hidden></div>
 <section id="report" aria-label="Сводка заработков" hidden>
-<div class="metrics"><article class="panel metric"><h2>Всего</h2><p id="total-czk">—</p><span id="total-eur">—</span></article><article class="panel metric"><h2>В среднем за час</h2><p id="hour-czk">—</p><span id="hour-eur">—</span></article><article class="panel metric"><h2>Время выступлений</h2><p id="total-time">—</p></article><article class="panel metric"><h2>Выступлений</h2><p id="count">—</p></article></div>
+<div class="metrics earnings-metrics"><article class="panel metric"><h2>Всего</h2><p id="total-czk">—</p><span id="total-eur">—</span></article><article class="panel metric"><h2>В среднем за час</h2><p id="hour-czk">—</p><span id="hour-eur">—</span></article><article class="panel metric"><h2>Время выступлений</h2><p id="total-time">—</p></article><article class="panel metric metric-count"><h2>Выступлений</h2><p id="count">—</p></article></div>
 <div class="charts"><section class="panel daily-panel"><div class="section-heading"><h2>Заработок по дням</h2><div class="switch" role="group" aria-label="Показатель графика"><button type="button" data-chart="sum" aria-pressed="true">Сумма</button><button type="button" data-chart="hour" aria-pressed="false">За час</button></div></div><div id="daily-chart" class="daily-chart"></div></section><section class="panel spots-panel" id="spots-panel" hidden><h2>По точкам · за час</h2><div id="spots-chart"></div></section></div>
 <section class="panel performances"><h2>Выступления</h2><div id="empty" class="empty" hidden><p>За этот период выступлений нет.</p></div><div class="table-wrap"><table id="entries-table"><thead><tr><th>Дата</th><th scope="col">День недели</th><th>Время</th><th>Точка</th><th>Получено</th><th>Итого</th><th>За час</th><th><span class="sr-only">Действия</span></th></tr></thead><tbody id="entries-body"></tbody></table></div></section>
 </section>
@@ -67,9 +68,17 @@
 </div>
 <button id="new-spot" type="button" class="new-spot">＋ Новая точка</button>
 <h3>Получено</h3><div id="amounts"></div><button type="button" id="add-currency">＋ Добавить валюту</button>
+<label class="note-field">Заметка<textarea id="entry-note" name="note" rows="4" maxlength="2000" placeholder="Необязательно"></textarea></label>
 <div id="estimate" class="estimate" aria-live="polite"><span>Итого</span><strong id="estimate-total">—</strong><span id="estimate-hour">—</span></div>
 <p id="form-error" class="message error" role="alert" hidden></p>
 <div class="drawer-actions"><button type="submit" id="save-entry" class="primary">Сохранить запись</button><button id="cancel-entry" type="button">Отмена</button></div>
+</form></dialog>
+<dialog id="note-dialog" class="small-dialog note-dialog" aria-labelledby="note-title" aria-describedby="note-context"><form id="note-form">
+<div class="drawer-heading"><h2 id="note-title">Заметка к выступлению</h2><button id="close-note" class="icon-button" type="button" aria-label="Закрыть заметку">×</button></div>
+<p id="note-context" class="note-context"></p>
+<label for="note-text">Заметка</label><textarea id="note-text" rows="7" maxlength="2000" aria-describedby="note-count" placeholder="Как прошло выступление? Что хочется запомнить?"></textarea>
+<p id="note-count" class="note-count">0 / 2000</p><p id="note-error" class="message error" role="alert" hidden></p>
+<div class="dialog-actions"><button id="cancel-note" type="button">Отмена</button><button id="save-note" class="primary" type="submit">Сохранить</button></div>
 </form></dialog>
 <dialog id="spot-dialog" class="small-dialog" aria-labelledby="spot-title"><form id="spot-form"><h2 id="spot-title">Новая точка</h2><label>Название<input id="spot-name" maxlength="80" required autocomplete="off" placeholder="Например, набережная"></label><p id="spot-error" class="message error" role="alert" hidden></p><div class="dialog-actions"><button id="cancel-spot" type="button">Отмена</button><button class="primary" id="save-spot" type="submit">Добавить точку</button></div></form></dialog>
 <dialog id="delete-dialog" class="small-dialog" aria-labelledby="delete-title"><h2 id="delete-title">Удалить выступление?</h2><p id="delete-description"></p><p id="delete-error" class="message error" role="alert" hidden></p><div class="dialog-actions"><button id="cancel-delete" type="button">Отмена</button><button id="confirm-delete" class="danger" type="button">Удалить</button></div></dialog>

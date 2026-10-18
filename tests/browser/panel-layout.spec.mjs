@@ -13,14 +13,14 @@ test('panels share tab baselines and underline position; mobile date fields stay
     const range=new URL(route.request().url()).searchParams;
     await route.fulfill({headers,json:trafficReport(range.get('from'),range.get('to'))});
   });
-  await page.route('**/earnings-api/**',route=>route.fulfill({json:route.request().url().includes('/spots')?{spots:[]}:{entries:[]}}));
+  await page.route('**/earnings-api/**',route=>route.fulfill({json:route.request().url().includes('/calendar')?{year:Number(new URL(route.request().url()).searchParams.get('year')),days:[]}:route.request().url().includes('/spots')?{spots:[]}:{entries:[]}}));
   const pages=[['/stat-panel/earnings','Заработки'],['/stat-panel/insights','Инсайты'],['/stat-panel/','Посещения']];
   for(const width of [1440,414,320]){
     await page.setViewportSize({width,height:900});
     const baselines=[];
     for(const [url,title] of pages){
       await page.goto(url);await expect(page.locator('#report')).toBeVisible();await page.evaluate(()=>document.fonts.ready);
-      await expect(page.locator('.masthead nav a')).toHaveText(['Заработки','Инсайты','Посещения']);
+      await expect(page.locator('.masthead nav a')).toHaveText(['Заработки','Посещения','Инсайты']);
       await expect(page.locator('.masthead nav [aria-current="page"]')).toHaveText(title);
       const geometry=await page.evaluate(()=>{
         const header=document.querySelector('.masthead').getBoundingClientRect();
@@ -37,7 +37,7 @@ test('panels share tab baselines and underline position; mobile date fields stay
           overflow:document.documentElement.scrollWidth>innerWidth,
         };
       });
-      expect(geometry.color).toBe('rgb(99, 129, 111)');expect(geometry.lineHeight).toBe('2px');expect(geometry.border).toBe('0px');
+      expect(geometry.color).toBe('rgb(184, 117, 96)');expect(geometry.lineHeight).toBe('2px');expect(geometry.border).toBe('0px');
       expect(geometry.separate).toBe(true);expect(geometry.contained).toBe(true);expect(geometry.overflow).toBe(false);
       if(width>380){
         expect(Math.abs(geometry.underline-geometry.headerHeight)).toBeLessThan(1);
@@ -47,4 +47,33 @@ test('panels share tab baselines and underline position; mobile date fields stay
     }
     if(baselines.length)expect(Math.max(...baselines)-Math.min(...baselines)).toBeLessThan(1);
   }
+});
+
+
+test('all panels share report width and the terracotta palette on desktop and mobile',async({page})=>{
+  await page.clock.setFixedTime(new Date('2026-10-18T12:00:00Z'));
+  await page.route('**/api/stats?**',route=>{
+    const range=new URL(route.request().url()).searchParams;
+    return route.fulfill({json:trafficReport(range.get('from'),range.get('to'))});
+  });
+  await page.route('**/earnings-api/**',route=>route.fulfill({json:route.request().url().includes('/calendar')?{year:Number(new URL(route.request().url()).searchParams.get('year')),days:[]}:route.request().url().includes('/spots')?{spots:[]}:{entries:[]}}));
+  for(const width of [320,390,700,780,1000,1100,1280,1440,1920,2560]){
+    await page.setViewportSize({width,height:1000});
+    const bounds=[];
+    for(const url of ['/stat-panel/earnings','/stat-panel/','/stat-panel/insights']){
+      await page.goto(url);await expect(page.locator('#report')).toBeVisible();
+      await page.evaluate(()=>document.fonts.ready);
+      const geometry=await page.locator('#filters').evaluate(filter=>{
+        const rect=filter.getBoundingClientRect();
+        return {left:rect.left,right:rect.right,width:rect.width};
+      });
+      bounds.push(geometry);
+      expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+      expect(await page.locator('body').evaluate(el=>getComputedStyle(el).getPropertyValue('--accent').trim())).toBe('#b87560');
+      await expect(page.locator('.masthead nav a')).toHaveText(['Заработки','Посещения','Инсайты']);
+    }
+    expect(bounds[1]).toEqual(bounds[0]);expect(bounds[2]).toEqual(bounds[0]);
+  }
+  await page.emulateMedia({colorScheme:'dark'});
+  expect(await page.locator('body').evaluate(el=>getComputedStyle(el).getPropertyValue('--accent').trim())).toBe('#d9a58f');
 });
