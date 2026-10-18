@@ -4,6 +4,7 @@ import {buildEarningsCalendar} from './earnings-calendar-model.js';
 const $ = id => document.getElementById(id);
 const months = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
 const amount = new Intl.NumberFormat('ru-RU', {maximumFractionDigits: 1});
+const money = new Intl.NumberFormat('ru-RU', {maximumFractionDigits: 2});
 const dateFormat = new Intl.DateTimeFormat('ru-RU', {day: 'numeric', month: 'long', year: 'numeric', weekday: 'long', timeZone: 'UTC'});
 const fullDate = date => dateFormat.format(new Date(date + 'T12:00:00Z'));
 const time = minutes => `${Math.floor(minutes / 60)} ч${minutes % 60 ? ` ${minutes % 60} мин` : ''}`;
@@ -114,7 +115,7 @@ export class EarningsCalendar {
       }
       if (day.date === this.asOf) button.setAttribute('aria-current', 'date');
       const detail = day.future ? 'день ещё не наступил' : day.count
-        ? `${amount.format(day.hourCzk)} Kč/ч (${amount.format(day.hourEur)} €/ч), ${day.spots.join(' · ')}, время: ${time(day.minutes)}`
+        ? `${amount.format(day.hourCzk)} Kč/ч (${amount.format(day.hourEur)} €/ч), всего: ${money.format(day.czkMinor / 100)} Kč (${money.format(day.eurMinor / 100)} €), ${day.spots.join(' · ')}, время: ${time(day.minutes)}`
         : 'выступлений не было';
       button.setAttribute('aria-label', `${fullDate(day.date)}: ${detail}`);
       return button;
@@ -155,7 +156,12 @@ export class EarningsCalendar {
     tooltip.replaceChildren(node('strong', fullDate(day.date)));
     if (day.count) {
       const list = node('dl');
-      for (const [name, value] of [['За час', `${amount.format(day.hourCzk)} Kč (${amount.format(day.hourEur)} €)`], ['Время', time(day.minutes)], [day.spots.length > 1 ? 'Точки' : 'Точка', day.spots.join(' · ')]]) {
+      for (const [name, value] of [
+        ['За час', `${amount.format(day.hourCzk)} Kč (${amount.format(day.hourEur)} €)`],
+        ['Всего', `${money.format(day.czkMinor / 100)} Kč (${money.format(day.eurMinor / 100)} €)`],
+        ['Время', time(day.minutes)],
+        [day.spots.length > 1 ? 'Точки' : 'Точка', day.spots.join(' · ')],
+      ]) {
         list.append(node('dt', name), node('dd', value));
       }
       tooltip.append(list);

@@ -69,11 +69,11 @@ test('annual heatmap shows the whole year, uses hourly intensity and stays indep
   await page.locator('#annual-days [data-date="2026-10-09"]').hover();
   await expect(page.locator('#annual-tooltip')).toBeVisible();
   await expect(page.locator('#annual-tooltip')).toContainText('105 Kč (4,2 €)');
-  await expect(page.locator('#annual-tooltip dd')).toHaveText(['105 Kč (4,2 €)', '3 ч', 'Точка A · Точка B']);
-  await expect(page.locator('#annual-tooltip dt')).toHaveText(['За час', 'Время', 'Точки']);
+  await expect(page.locator('#annual-tooltip dd')).toHaveText(['105 Kč (4,2 €)', '315 Kč (12,6 €)', '3 ч', 'Точка A · Точка B']);
+  await expect(page.locator('#annual-tooltip dt')).toHaveText(['За час', 'Всего', 'Время', 'Точки']);
   await page.locator('#annual-days [data-date="2026-01-02"]').hover();
-  await expect(page.locator('#annual-tooltip dd')).toHaveText(['100 Kč (4 €)', '1 ч', 'Точка A']);
-  await expect(page.locator('#annual-tooltip dt')).toHaveText(['За час', 'Время', 'Точка']);
+  await expect(page.locator('#annual-tooltip dd')).toHaveText(['100 Kč (4 €)', '100 Kč (4 €)', '1 ч', 'Точка A']);
+  await expect(page.locator('#annual-tooltip dt')).toHaveText(['За час', 'Всего', 'Время', 'Точка']);
   await page.locator('#from').fill('2026-10-01');await page.locator('#to').fill('2026-10-02');await page.locator('#show').click();
   await expect(page.locator('#report')).toBeVisible();
   await expect(page.locator('#total-czk')).toHaveText('0 Kč');
