@@ -35,9 +35,9 @@
 
 /* One typography source for Visits, Earnings and Insights. Load last. */
 body.panel-page {
-  --accent:#8c739b;
-  --accent-soft:#eee8f2;
-  --accent-button:#765b86;
+  --accent:#b87560;
+  --accent-soft:#f4e6df;
+  --accent-button:#934f3b;
   --on-accent:#fff;
   --panel-font:"Golos Text",system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
   --panel-type-ink:#242724;
@@ -203,7 +203,7 @@ body.panel-page .performances td strong { font-weight:400; }
 body.panel-page .performances .entry-trigger { font-size:24px; }
 
 @media(prefers-color-scheme:dark) {
-  body.panel-page { --accent:#b69bc8; --accent-soft:#38303f; --accent-button:#b69bc8; --on-accent:#25202b; --panel-type-ink:#eceee7; --panel-type-muted:#adb4ad; --panel-type-surface:#252927; }
+  body.panel-page { --accent:#d9a58f; --accent-soft:#49342b; --accent-button:#d9a58f; --on-accent:#2b211d; --panel-type-ink:#eceee7; --panel-type-muted:#adb4ad; --panel-type-surface:#252927; }
   body.panel-page .masthead nav a[aria-current="page"]::after { background:var(--accent); }
 }
 @media(max-width:999px) {

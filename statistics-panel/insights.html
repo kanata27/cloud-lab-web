@@ -8,14 +8,14 @@
   <meta name="color-scheme" content="light dark">
   <title>Инсайты</title>
   <link rel="icon" href="/assets/favicon.svg">
-  <link rel="stylesheet" href="/stat-panel/earnings.css?v=20261018-2">
+  <link rel="stylesheet" href="/stat-panel/earnings.css?v=20261018-3">
   <link rel="stylesheet" href="/stat-panel/date-filter.css">
-  <link rel="stylesheet" href="/stat-panel/insights.css?v=20261018-2">
+  <link rel="stylesheet" href="/stat-panel/insights.css?v=20261018-3">
   <script src="/site-config.js" defer></script>
   <script type="module" src="/stat-panel/insights.js"></script>
   <link rel="preload" href="/stat-panel/fonts/golos-text-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/stat-panel/fonts/golos-text-cyrillic-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="/stat-panel/panel-typography.css?v=20261018-2">
+  <link rel="stylesheet" href="/stat-panel/panel-typography.css?v=20261018-3">
 </head>
 <body class="panel-page">
   <main class="shell insights-shell" id="app" hidden>
@@ -85,6 +85,27 @@
         <ol id="weekday-ranking" class="weekday-ranking" aria-label="Дни недели по среднему заработку за час" aria-live="polite"></ol>
         <p id="weekday-empty" class="weekday-description" hidden>За выбранный период выступлений здесь нет.</p>
       </section>
+    </section>
+    <section class="panel annual-panel" id="annual-panel" aria-labelledby="annual-title">
+      <div class="annual-heading">
+        <div><h2 id="annual-title">Доходность за год</h2><p class="annual-description">Заработок за час · 1 января — 31 декабря</p></div>
+        <label class="annual-year">Год<select id="annual-year" aria-label="Год календаря"></select></label>
+      </div>
+      <p id="annual-message" class="annual-description" role="status">Загружаем календарь…</p>
+      <button id="annual-retry" class="quiet annual-retry" type="button" hidden>Повторить</button>
+      <div id="annual-report" hidden>
+        <div id="annual-scroll" class="annual-scroll" role="region" aria-label="Годовой календарь заработков">
+          <div id="annual-calendar" class="annual-calendar">
+            <div id="annual-months" class="annual-months" aria-hidden="true"></div>
+            <div class="annual-weekdays" aria-hidden="true"><span>Пн</span><span></span><span>Ср</span><span></span><span>Пт</span><span></span><span>Вс</span></div>
+            <div id="annual-days" class="annual-days" role="group" aria-label="Дни года" aria-describedby="annual-help"></div>
+          </div>
+        </div>
+        <p class="annual-scroll-hint">Листай календарь вбок ↔</p>
+        <div class="annual-footer"><p id="annual-summary" class="annual-description"></p><div class="annual-legend" aria-label="Чем насыщеннее цвет, тем выше заработок за час"><span>Меньше</span><i data-level="0"></i><i data-level="1"></i><i data-level="2"></i><i data-level="3"></i><i data-level="4"></i><span>Больше</span></div></div>
+      </div>
+      <p id="annual-help" class="sr-only">Наведи на день или нажми на него, чтобы увидеть заработок за час. На телефоне календарь можно прокрутить вбок. Стрелки вверх и вниз переходят к соседнему дню, влево и вправо — на неделю. Home и End переходят к началу и концу доступного периода. Escape закрывает подсказку.</p>
+      <div id="annual-tooltip" class="annual-tooltip" popover="manual" role="tooltip"></div>
     </section>
     <noscript>Для просмотра статистики нужен JavaScript.</noscript>
   </main>

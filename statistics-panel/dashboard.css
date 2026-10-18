@@ -5,8 +5,8 @@
   --ink:#242724;
   --muted:#676a65;
   --line:#d9dbd3;
-  --accent:#8c739b;
-  --accent-soft:#eee8f2;
+  --accent:#b87560;
+  --accent-soft:#f4e6df;
   --blue:#586b83;
   --error:#8d332a;
   --shadow:0 5px 22px #23292006;
@@ -475,8 +475,8 @@ th:first-child,td:first-child {
     --ink:#eceee7;
     --muted:#adb4ad;
     --line:#404742;
-    --accent:#b69bc8;
-    --accent-soft:#38303f;
+    --accent:#d9a58f;
+    --accent-soft:#49342b;
     --blue:#a2b9d5;
     --error:#ffa59b;
     --shadow:none;

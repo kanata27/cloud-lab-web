@@ -14,6 +14,7 @@ async function mockData(page, {entries = [], spots = [{id: 'spot-a', name: 'То
   await page.route('**/earnings-api/**', async route => {
     const url = new URL(route.request().url());
     expect(route.request().method()).toBe('GET');
+    if (url.pathname.endsWith('/calendar')) return route.fulfill({json: {year: Number(url.searchParams.get('year')), days: []}});
     if (url.pathname.endsWith('/spots')) {
       calls.spots++;
       return failSpots ? route.fulfill({status: 503, json: {error: 'unavailable'}}) : route.fulfill({json: {spots}});

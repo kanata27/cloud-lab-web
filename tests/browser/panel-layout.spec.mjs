@@ -13,7 +13,7 @@ test('panels share tab baselines and underline position; mobile date fields stay
     const range=new URL(route.request().url()).searchParams;
     await route.fulfill({headers,json:trafficReport(range.get('from'),range.get('to'))});
   });
-  await page.route('**/earnings-api/**',route=>route.fulfill({json:route.request().url().includes('/spots')?{spots:[]}:{entries:[]}}));
+  await page.route('**/earnings-api/**',route=>route.fulfill({json:route.request().url().includes('/calendar')?{year:Number(new URL(route.request().url()).searchParams.get('year')),days:[]}:route.request().url().includes('/spots')?{spots:[]}:{entries:[]}}));
   const pages=[['/stat-panel/earnings','Заработки'],['/stat-panel/insights','Инсайты'],['/stat-panel/','Посещения']];
   for(const width of [1440,414,320]){
     await page.setViewportSize({width,height:900});
@@ -37,7 +37,7 @@ test('panels share tab baselines and underline position; mobile date fields stay
           overflow:document.documentElement.scrollWidth>innerWidth,
         };
       });
-      expect(geometry.color).toBe('rgb(140, 115, 155)');expect(geometry.lineHeight).toBe('2px');expect(geometry.border).toBe('0px');
+      expect(geometry.color).toBe('rgb(184, 117, 96)');expect(geometry.lineHeight).toBe('2px');expect(geometry.border).toBe('0px');
       expect(geometry.separate).toBe(true);expect(geometry.contained).toBe(true);expect(geometry.overflow).toBe(false);
       if(width>380){
         expect(Math.abs(geometry.underline-geometry.headerHeight)).toBeLessThan(1);
@@ -50,13 +50,13 @@ test('panels share tab baselines and underline position; mobile date fields stay
 });
 
 
-test('all panels share report width and the purple palette on desktop and mobile',async({page})=>{
+test('all panels share report width and the terracotta palette on desktop and mobile',async({page})=>{
   await page.clock.setFixedTime(new Date('2026-10-18T12:00:00Z'));
   await page.route('**/api/stats?**',route=>{
     const range=new URL(route.request().url()).searchParams;
     return route.fulfill({json:trafficReport(range.get('from'),range.get('to'))});
   });
-  await page.route('**/earnings-api/**',route=>route.fulfill({json:route.request().url().includes('/spots')?{spots:[]}:{entries:[]}}));
+  await page.route('**/earnings-api/**',route=>route.fulfill({json:route.request().url().includes('/calendar')?{year:Number(new URL(route.request().url()).searchParams.get('year')),days:[]}:route.request().url().includes('/spots')?{spots:[]}:{entries:[]}}));
   for(const width of [320,390,700,780,1000,1100,1280,1440,1920,2560]){
     await page.setViewportSize({width,height:1000});
     const bounds=[];
@@ -69,11 +69,11 @@ test('all panels share report width and the purple palette on desktop and mobile
       });
       bounds.push(geometry);
       expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
-      expect(await page.locator('body').evaluate(el=>getComputedStyle(el).getPropertyValue('--accent').trim())).toBe('#8c739b');
+      expect(await page.locator('body').evaluate(el=>getComputedStyle(el).getPropertyValue('--accent').trim())).toBe('#b87560');
       await expect(page.locator('.masthead nav a')).toHaveText(['Заработки','Посещения','Инсайты']);
     }
     expect(bounds[1]).toEqual(bounds[0]);expect(bounds[2]).toEqual(bounds[0]);
   }
   await page.emulateMedia({colorScheme:'dark'});
-  expect(await page.locator('body').evaluate(el=>getComputedStyle(el).getPropertyValue('--accent').trim())).toBe('#b69bc8');
+  expect(await page.locator('body').evaluate(el=>getComputedStyle(el).getPropertyValue('--accent').trim())).toBe('#d9a58f');
 });

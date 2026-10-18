@@ -36,6 +36,18 @@ export default {async fetch(request,env) {
     if(!env.EARNINGS_DB) fail('Хранилище заработков ещё не подключено.',503);
     const db=env.EARNINGS_DB,path=url.pathname.slice(PREFIX.length);
     if(path==='/rates'&&request.method==='GET') return json(await ratesFor(url.searchParams.get('date'),db));
+    if(path==='/calendar'&&request.method==='GET'){
+      const year=url.searchParams.get('year');
+      if(!/^\d{4}$/.test(year||'')||Number(year)<2000||Number(year)>Number(today().slice(0,4))) fail('Выбери год от 2000 до текущего.');
+      // Aggregate in D1: a full year needs no private notes or 2000-entry limit.
+      const {results}=await db.prepare(`SELECT date,
+        SUM(json_extract(payload,'$.czkMinor')) AS czkMinor,
+        SUM(json_extract(payload,'$.eurMinor')) AS eurMinor,
+        SUM(json_extract(payload,'$.minutes')) AS minutes,COUNT(*) AS count
+        FROM earnings_entries WHERE date BETWEEN ? AND ? GROUP BY date ORDER BY date`)
+        .bind(year+'-01-01',year+'-12-31').all();
+      return json({year:Number(year),days:results});
+    }
     if(path==='/spots'&&request.method==='GET') return json({spots:(await db.prepare('SELECT id,name FROM earnings_spots ORDER BY name').all()).results});
     if(path==='/spots'&&request.method==='POST'){
       const name=spotName(await body(request));

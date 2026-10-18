@@ -1,6 +1,7 @@
 import {accessFetch,sessionEnded,logout} from './session.js';
 import {DateFilters, fullDate} from './date-filter.js';
 import {splitRanges, validateTrafficReport, buildInsights, byWeeks, axisScale, rankWeekdays} from './insights-model.js';
+import {EarningsCalendar} from './earnings-calendar.js';
 
 const $ = id => document.getElementById(id);
 const integer = new Intl.NumberFormat('ru-RU');
@@ -10,6 +11,7 @@ const shortDate = value => new Intl.DateTimeFormat('ru-RU', {day: 'numeric', mon
   .format(new Date(value + 'T12:00:00Z')).replaceAll('.', '');
 let filters, report = null, controller = null, group = 'days', chart = null, hovered = null;
 let weekdayEntries = [], weekdaySpots = [];
+let annualCalendar;
 
 function node(tag, text) {
   const element = document.createElement(tag);
@@ -29,6 +31,7 @@ function message(text, error = false) {
   $('message').setAttribute('role', error ? 'alert' : 'status');
 }
 function expire() {
+  annualCalendar?.destroy();
   controller?.abort();
   report = chart = null;
   $('app').hidden = true;
@@ -157,7 +160,7 @@ function drawChart() {
   const viewsY = value => pad.top + plotHeight * (1 - value / viewScale.max);
   const svg = svgNode('svg', {viewBox: `0 0 ${width} ${height}`, role: 'img', 'aria-labelledby': 'graph-title graph-description'});
   svg.append(svgNode('title', {id: 'graph-title'}, 'Заработок и просмотры ' + (group === 'weeks' ? 'по неделям' : 'по дням')));
-  svg.append(svgNode('desc', {id: 'graph-description'}, 'Зелёные столбцы — заработок в кронах, синяя линия — просмотры. У каждой серии своя шкала с нулём. В режиме недель показаны суммы с понедельника по воскресенье, в пределах выбранного периода.'));
+  svg.append(svgNode('desc', {id: 'graph-description'}, 'Терракотовые столбцы — заработок в кронах, синяя линия — просмотры. У каждой серии своя шкала с нулём. В режиме недель показаны суммы с понедельника по воскресенье, в пределах выбранного периода.'));
   svg.append(svgNode('text', {x: 0, y: 14, class: 'chart-axis chart-unit'}, group === 'weeks' && !small ? 'Заработок за неделю, Kč' : 'Заработок, Kč'));
   svg.append(svgNode('text', {x: width, y: 14, 'text-anchor': 'end', class: 'chart-axis chart-unit'}, group === 'weeks' && !small ? 'Просмотры за неделю' : 'Просмотры'));
   const highlight = svgNode('rect', {y: pad.top, height: plotHeight, width: step, class: 'chart-hover', visibility: 'hidden'});
@@ -253,5 +256,6 @@ new ResizeObserver(() => drawChart()).observe($('insights-chart'));
   // /stats currently supplies UTC daily buckets; keep its date boundaries.
   filters = new DateFilters({timeZone: 'UTC', onChange: load});
   $('app').hidden = false;
+  annualCalendar = new EarningsCalendar({read: (year, signal) => readJSON('/earnings-api/calendar?' + new URLSearchParams({year}), signal, 'годовой календарь')});
   load();
 }
