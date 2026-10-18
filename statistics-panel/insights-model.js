@@ -1,4 +1,4 @@
-import {dateValid, plusDays} from './earnings-model.js';
+import {dateValid, plusDays, WEEKDAYS, weekdayIndex} from './earnings-model.js';
 
 const DAY = 86400000;
 const trafficFields = ['page_views', 'outbound_clicks', 'youtube', 'instagram'];
@@ -97,6 +97,31 @@ export function byWeeks(daily) {
     for (const key of ['czkMinor', 'minutes', 'views', 'youtube', 'instagram']) week[key] += day[key];
   }
   return [...weeks.values()];
+}
+
+export function rankWeekdays(entries, spotId = '') {
+  if (!Array.isArray(entries) || typeof spotId !== 'string') throw new Error('Не удалось прочитать данные заработков.');
+  const days = WEEKDAYS.map((name, weekday) => ({weekday, name, czkMinor: 0, minutes: 0, count: 0, hourCzk: 0}));
+  const seen = new Set();
+  for (const entry of entries) {
+    if (!dateValid(entry?.date) || typeof entry.id !== 'string' || seen.has(entry.id)
+        || typeof entry.spotId !== 'string' || !/^[\w-]{1,64}$/.test(entry.spotId)
+        || !count(entry.czkMinor) || !Number.isInteger(entry.minutes) || entry.minutes < 1 || entry.minutes > 1440) {
+      throw new Error('В данных заработков обнаружена ошибка.');
+    }
+    seen.add(entry.id);
+    if (spotId && entry.spotId !== spotId) continue;
+    const day = days[weekdayIndex(entry.date)];
+    // Reuse the saved FX conversion. Weight by playing time, not by entry count.
+    day.czkMinor += entry.czkMinor;
+    day.minutes += entry.minutes;
+    day.count++;
+  }
+  for (const day of days) {
+    if (!count(day.czkMinor) || !count(day.minutes)) throw new Error('Показатели отчёта превышают допустимый размер.');
+    day.hourCzk = day.minutes ? day.czkMinor / 100 * 60 / day.minutes : 0;
+  }
+  return days.sort((a, b) => b.hourCzk - a.hourCzk || a.weekday - b.weekday);
 }
 
 export function axisScale(values, integerOnly = false) {

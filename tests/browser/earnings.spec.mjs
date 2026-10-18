@@ -160,7 +160,8 @@ test('earnings: full-width chart, rounded axes, compact spots and overnight disp
  await page.goto('/stat-panel/earnings');await expect(page.locator('#entries-body tr')).toHaveCount(1);
  await expect(page.getByRole('heading',{name:'Заработки',exact:true})).toHaveCount(0);
  await expect(page.locator('#entries-body')).not.toContainText('+1 день');
- await expect(page.locator('#entries-body td').nth(1)).toHaveText('11:11–04:1217 ч 1 мин');
+ await expect(page.locator('#entries-body td').nth(1)).toHaveText('Суббота');
+ await expect(page.locator('#entries-body td').nth(2)).toHaveText('11:11–04:1217 ч 1 мин');
  for(const width of [1440,1000,390,320]){
   await page.setViewportSize({width,height:1000});
   await expect.poll(()=>page.evaluate(()=>{

@@ -1,6 +1,6 @@
 import {accessFetch,sessionEnded,logout} from './session.js';
 import {DateFilters, fullDate} from './date-filter.js';
-import {splitRanges, validateTrafficReport, buildInsights, byWeeks, axisScale} from './insights-model.js';
+import {splitRanges, validateTrafficReport, buildInsights, byWeeks, axisScale, rankWeekdays} from './insights-model.js';
 
 const $ = id => document.getElementById(id);
 const integer = new Intl.NumberFormat('ru-RU');
@@ -9,6 +9,7 @@ const hourly = new Intl.NumberFormat('ru-RU', {maximumFractionDigits: 1});
 const shortDate = value => new Intl.DateTimeFormat('ru-RU', {day: 'numeric', month: 'short', timeZone: 'UTC'})
   .format(new Date(value + 'T12:00:00Z')).replaceAll('.', '');
 let filters, report = null, controller = null, group = 'days', chart = null, hovered = null;
+let weekdayEntries = [], weekdaySpots = [];
 
 function node(tag, text) {
   const element = document.createElement(tag);
@@ -61,16 +62,29 @@ async function load() {
   try {
     const selection = filters.selection();
     const ranges = splitRanges(selection.from, selection.to);
-    const [traffic, earnings] = await Promise.all([
+    const [traffic, earnings, locations] = await Promise.all([
       Promise.all(ranges.map(async range => {
         const query = new URLSearchParams({...range, source: 'all'});
         const data = await readJSON(`${window.KANATA_CONFIG.apiBase}/stats?${query}`, request.signal, 'посещения');
         return validateTrafficReport(data, range);
       })),
       readJSON('/earnings-api/entries?' + new URLSearchParams({...selection, spot: ''}), request.signal, 'заработки'),
+      readJSON('/earnings-api/spots', request.signal, 'точки выступлений'),
     ]);
     if (request !== controller || request.signal.aborted) return;
+    const spotIds = new Set();
+    if (!Array.isArray(locations.spots) || locations.spots.some(spot => {
+      if (!spot || typeof spot.id !== 'string' || !/^[\w-]{1,64}$/.test(spot.id) || spotIds.has(spot.id)
+          || typeof spot.name !== 'string' || !spot.name.trim() || spot.name.length > 80) return true;
+      spotIds.add(spot.id);
+      return false;
+    })) throw new Error('Не удалось прочитать точки выступлений.');
     report = buildInsights({...selection, traffic, entries: earnings.entries});
+    if (earnings.entries.some(entry => !spotIds.has(entry.spotId))) throw new Error('Точка выступления не найдена. Обнови отчёт.');
+    weekdayEntries = earnings.entries;
+    weekdaySpots = locations.spots;
+    populateWeekdaySpots();
+    drawWeekdays();
     const {totals} = report;
     $('total-czk').textContent = amount.format(totals.czkMinor / 100) + ' Kč';
     $('hour-czk').replaceChildren(...(totals.hourCzk === null ? [node('span', '—')]
@@ -88,6 +102,35 @@ async function load() {
   } finally {
     if (request === controller) { $('show').disabled = false; $('app').removeAttribute('aria-busy'); }
   }
+}
+
+function populateWeekdaySpots() {
+  const select = $('weekday-spot'), previous = select.value;
+  select.replaceChildren(...weekdaySpots.map(spot => new Option(spot.name, spot.id)));
+  select.value = weekdaySpots.some(spot => spot.id === previous) ? previous : weekdaySpots[0]?.id || '';
+  select.disabled = weekdaySpots.length < 2;
+  $('weekday-spot-picker').hidden = weekdaySpots.length < 2;
+  $('weekday-only-spot').hidden = weekdaySpots.length > 1;
+  $('weekday-only-spot').textContent = weekdaySpots[0]?.name || 'Пока нет точек';
+}
+
+function drawWeekdays() {
+  const days = rankWeekdays(weekdayEntries, $('weekday-spot').value);
+  const peak = Math.max(1, ...days.map(day => day.hourCzk));
+  const rows = days.map(day => {
+    const row = node('li'), name = node('span', day.name), value = node('strong', hourly.format(day.hourCzk) + ' Kč/ч');
+    row.dataset.weekday = String(day.weekday);
+    name.className = 'weekday-name';
+    value.className = 'weekday-rate';
+    const bar = node('progress');
+    bar.max = peak;
+    bar.value = day.hourCzk;
+    bar.setAttribute('aria-hidden', 'true');
+    row.append(name, value, bar);
+    return row;
+  });
+  $('weekday-ranking').replaceChildren(...rows);
+  $('weekday-empty').hidden = days.some(day => day.count);
 }
 
 function drawChart() {
@@ -198,6 +241,7 @@ document.querySelectorAll('[data-group]').forEach(button => button.addEventListe
   hideTooltip(); drawChart();
 }));
 $('logout').addEventListener('click', logout);
+$('weekday-spot').addEventListener('change', () => { if (report && !$('report').hidden) drawWeekdays(); });
 new ResizeObserver(() => drawChart()).observe($('insights-chart'));
 {
   // /stats currently supplies UTC daily buckets; keep its date boundaries.

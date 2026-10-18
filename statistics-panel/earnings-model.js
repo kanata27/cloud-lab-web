@@ -1,6 +1,12 @@
 export const DEFAULT_CURRENCIES = ['CZK', 'EUR', 'USD'];
+export const WEEKDAYS = Object.freeze(['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье']);
 export function dateValid(value) {
   return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) && Number.isFinite(Date.parse(value)) && new Date(value).toISOString().slice(0,10) === value;
+}
+export function weekdayIndex(date) {
+  if (!dateValid(date)) throw new Error('Некорректная дата выступления.');
+  // The saved Prague calendar date is authoritative, including overnight sets.
+  return (new Date(date + 'T00:00:00Z').getUTCDay() + 6) % 7;
 }
 export function today() {
   return new Intl.DateTimeFormat('en-CA', {timeZone:'Europe/Prague',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
