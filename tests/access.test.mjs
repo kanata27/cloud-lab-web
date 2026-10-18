@@ -75,49 +75,47 @@ test('authenticated assets are never public-cacheable and unsafe requests are re
   }finally{globalThis.fetch=original;}
 });
 
-test('the email allowlist accepts either exact address, without extending trust to other identities',async()=>{
+test('only the configured owner is accepted, even when an obsolete multi-address secret remains',async()=>{
   const original=globalThis.fetch;globalThis.fetch=async(url)=>keysResponse(url);
-  const env={...accessEnv,ACCESS_ALLOWED_EMAILS:' OWNER@example.test , backup@example.test,owner@example.test '};
+  const env={...accessEnv,ACCESS_ALLOWED_EMAIL:' OWNER@example.test ',ACCESS_ALLOWED_EMAILS:'owner@example.test,backup@example.test'};
   try{
-    assert.deepEqual([...accessSettings(env).emails],['owner@example.test','backup@example.test']);
-    for(const email of ['owner@example.test','backup@example.test','BACKUP@example.test']){
+    assert.equal(accessSettings(env).email,'owner@example.test');
+    for(const email of ['owner@example.test','OWNER@example.test']){
       const identity=await authorize(request(await accessToken({email})),env);
       assert.equal(identity.email,email.toLowerCase());
     }
-    for(const email of ['stranger@example.test','owner@example.test.attacker.invalid','owner+other@example.test']){
+    for(const email of ['backup@example.test','stranger@example.test','owner@example.test.attacker.invalid','owner+other@example.test']){
       await assert.rejects(()=>accessToken({email}).then(token=>authorize(request(token),env)),e=>e.status===403);
     }
-    for(const claims of [{email:'backup@example.test',type:'service'},
-      {email:'backup@example.test',aud:['b'.repeat(64)]},
-      {email:'backup@example.test',exp:Math.floor(Date.now()/1000)-1}]){
+    for(const claims of [{type:'service'}, {aud:['b'.repeat(64)]}, {exp:Math.floor(Date.now()/1000)-1}]){
       await assert.rejects(()=>accessToken(claims).then(token=>authorize(request(token),env)),e=>[401,403].includes(e.status));
     }
-    // Configuring the new secret replaces the legacy address; it is not a union.
+    // Updating the one configured address revokes the previous identity.
     await assert.rejects(()=>accessToken().then(token=>authorize(request(token),{
-      ...env,ACCESS_ALLOWED_EMAILS:'backup@example.test',
+      ...env,ACCESS_ALLOWED_EMAIL:'backup@example.test',
     })),e=>e.status===403);
     assert.equal((await authorize(request(await accessToken()),accessEnv)).email,'owner@example.test');
   }finally{globalThis.fetch=original;}
 });
 
-test('an invalid allowlist fails closed even when a valid legacy secret still exists',()=>{
-  const invalid=['',null,123,[],{},'owner@example.test,','owner@example.test,,backup@example.test',
+test('one valid email is required; lists, missing values and a plural-only secret fail closed',()=>{
+  const invalid=['',null,undefined,123,[],{},'owner@example.test,','owner@example.test,backup@example.test',
     '*@example.test','owner@example.test;backup@example.test','Name <owner@example.test>',
     'a'.repeat(255)+'@example.test','owner@example.test,'.repeat(300),
     Array.from({length:9},(_,i)=>`owner${i}@example.test`).join(',')];
   for(const value of invalid){
-    assert.throws(()=>accessSettings({...accessEnv,ACCESS_ALLOWED_EMAILS:value}),error=>error.status===503);
+    assert.throws(()=>accessSettings({...accessEnv,ACCESS_ALLOWED_EMAIL:value,ACCESS_ALLOWED_EMAILS:'owner@example.test'}),error=>error.status===503);
   }
 });
 
 test('a blocked page provides session recovery without leaking the allowlist or loading private assets',async()=>{
   const original=globalThis.fetch;globalThis.fetch=async(url)=>keysResponse(url);
-  const env={...accessEnv,ACCESS_ALLOWED_EMAILS:'owner@example.test,backup@example.test',EARNINGS_DB:{},
+  const env={...accessEnv,EARNINGS_DB:{},
     ASSETS:{fetch(){throw Error('A denied request must not load private assets');}}};
   try{
     for(const [token,status,title] of [
       [null,401,'Войди заново'],
-      [await accessToken({email:'stranger@example.test'}),403,'Этот аккаунт не допущен'],
+      [await accessToken({email:'stranger@example.test'}),403,'Этот email не допущен'],
       [await accessToken({exp:Math.floor(Date.now()/1000)-1}),401,'Войди заново'],
     ]){
       const headers={Accept:'text/html'};if(token)headers['Cf-Access-Jwt-Assertion']=token;
@@ -133,7 +131,7 @@ test('a blocked page provides session recovery without leaking the allowlist or 
       assert.match(response.headers.get('Cache-Control'),/no-store/);
     }
     const unavailable=await worker.fetch(new Request('https://kanata.test/stat-panel/',{headers:{Accept:'text/html'}}),{
-      ...env,ACCESS_ALLOWED_EMAILS:'',
+      ...env,ACCESS_ALLOWED_EMAIL:'',
     });
     assert.equal(unavailable.status,503);assert.match(await unavailable.text(),/Вход временно недоступен/);
   }finally{globalThis.fetch=original;}
@@ -142,7 +140,7 @@ test('a blocked page provides session recovery without leaking the allowlist or 
 test('public recovery remains reachable without a session or database and never reflects return destinations',async()=>{
   const env={...accessEnv,ASSETS:{fetch(){throw Error('Recovery must be self contained');}}};
   for(const [suffix,title] of [
-    ['', 'Вход в панель'],['?reason=expired','Войди заново'],['?reason=denied','Этот аккаунт не допущен'],
+    ['', 'Вход в панель'],['?reason=expired','Войди заново'],['?reason=denied','Этот email не допущен'],
     ['?reason=constructor&next=https://attacker.invalid','Вход в панель'],
     ['?reason=%3Cscript%3E&next=//attacker.invalid','Вход в панель'],
   ]){
@@ -150,6 +148,7 @@ test('public recovery remains reachable without a session or database and never 
     assert.equal(response.status,200);
     const html=await response.text();assert.ok(html.includes(`<h1>${title}</h1>`));
     assert.doesNotMatch(html,/attacker.invalid|<script|owner@example/);
+    assert.doesNotMatch(html,/Cloudflare|выбор способа входа/i);
     assert.match(response.headers.get('Cache-Control'),/no-store/);
   }
   const head=await worker.fetch(new Request('https://kanata.test/panel-login/',{method:'HEAD'}),env);

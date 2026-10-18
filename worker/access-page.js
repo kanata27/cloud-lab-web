@@ -3,22 +3,22 @@ import {noStore} from './http.js';
 const states = Object.freeze({
   entry: {
     title: 'Вход в панель',
-    message: 'Войди по коду на почту или через свой аккаунт Cloudflare.',
-    detail: 'Выбор способа входа появится на следующем экране.',
+    message: 'Введи свой email и подтверди вход кодом из письма.',
+    detail: 'На следующем экране можно запросить код на почту.',
     primary: 'Войти в панель', href: '/stat-panel/',
-    secondary: 'Сбросить сессию и сменить аккаунт', secondaryHref: '/cdn-cgi/access/logout',
+    secondary: 'Сбросить сессию', secondaryHref: '/cdn-cgi/access/logout',
   },
   expired: {
     title: 'Войди заново',
     message: 'Сессия завершилась или её не удалось подтвердить.',
-    detail: 'Сбрось текущую сессию и выбери вход по email или через Cloudflare.',
+    detail: 'Сбрось текущую сессию и запроси новый код на почту.',
     primary: 'Сбросить сессию и войти', href: '/cdn-cgi/access/logout',
     secondary: 'Повторить вход', secondaryHref: '/stat-panel/',
   },
   denied: {
-    title: 'Этот аккаунт не допущен',
-    message: 'Вход выполнен, но этому аккаунту не разрешён доступ к панели.',
-    detail: 'Выбери другой аккаунт. Если это твой разрешённый адрес, нужно проверить настройки доступа.',
+    title: 'Этот email не допущен',
+    message: 'Адрес подтверждён, но ему не разрешён доступ к панели.',
+    detail: 'Сбрось текущую сессию и войди с разрешённого email.',
     primary: 'Сбросить сессию и войти', href: '/cdn-cgi/access/logout',
     secondary: 'Повторить вход', secondaryHref: '/stat-panel/',
   },
@@ -27,14 +27,14 @@ const states = Object.freeze({
     message: 'Не удалось проверить доступ. Данные панели не загружены.',
     detail: 'Попробуй ещё раз немного позже.',
     primary: 'Повторить вход', href: '/stat-panel/',
-    secondary: 'Сбросить сессию и сменить аккаунт', secondaryHref: '/cdn-cgi/access/logout',
+    secondary: 'Сбросить сессию', secondaryHref: '/cdn-cgi/access/logout',
   },
   error: {
     title: 'Не удалось открыть панель',
     message: 'Запрос не удалось выполнить. Попробуй открыть панель ещё раз.',
-    detail: 'Если нужно войти другим аккаунтом, сначала сбрось текущую сессию.',
+    detail: 'Чтобы запросить новый код на почту, сначала сбрось текущую сессию.',
     primary: 'Открыть панель', href: '/stat-panel/',
-    secondary: 'Сбросить сессию и сменить аккаунт', secondaryHref: '/cdn-cgi/access/logout',
+    secondary: 'Сбросить сессию', secondaryHref: '/cdn-cgi/access/logout',
   },
 });
 

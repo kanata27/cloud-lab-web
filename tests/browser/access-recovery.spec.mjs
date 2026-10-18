@@ -1,23 +1,18 @@
 import {test,expect} from '../support/browser.mjs';
 
-for(const [label,email] of [
- ['Email · основной','owner@example.test'],
- ['Email · второй','backup@example.test'],
- ['Cloudflare','owner@example.test'],
-]){
- test(`either allowed identity reaches the panel through the Access fixture: ${label}`,async({page,context})=>{
+test('the one allowed email reaches the panel through the OTP fixture',async({page,context})=>{
   await context.clearCookies();
   await page.goto('/stat-panel/');
   await expect(page).toHaveURL(/\/test\/access\/login/);
-  await page.getByRole('link',{name:label,exact:true}).click();
+  await expect(page.getByRole('link',{name:'Cloudflare',exact:true})).toHaveCount(0);
+  await page.getByRole('link',{name:'Email + код',exact:true}).click();
   await expect(page).toHaveURL(/\/stat-panel\/$/);
   await expect(page.locator('#report')).toBeVisible();
   const session=await context.request.get('/api/session');
-  expect(session.status()).toBe(200);expect(await session.json()).toMatchObject({ok:true,email});
- });
-}
+  expect(session.status()).toBe(200);expect(await session.json()).toMatchObject({ok:true,email:'owner@example.test'});
+});
 
-test('a denied mobile user can reset the session and sign in with the other allowed account',async({page,context})=>{
+test('a previously allowed second email is denied and can reset the session to use the one owner email',async({page,context})=>{
  await context.addCookies([{name:'test_access',value:'denied',url:'http://127.0.0.1:8787',httpOnly:true}]);
  await page.addInitScript(()=>{
   window.__cspViolations=[];
@@ -25,7 +20,7 @@ test('a denied mobile user can reset the session and sign in with the other allo
  });
  const response=await page.goto('/stat-panel/earnings.html');
  expect(response.status()).toBe(403);
- await expect(page.getByRole('heading',{name:'Этот аккаунт не допущен'})).toBeVisible();
+ await expect(page.getByRole('heading',{name:'Этот email не допущен'})).toBeVisible();
  await expect(page.locator('#app,#report')).toHaveCount(0);
  for(const width of [320,390,1440]){
   await page.setViewportSize({width,height:844});
@@ -38,12 +33,12 @@ test('a denied mobile user can reset the session and sign in with the other allo
  await page.getByRole('link',{name:'Сбросить сессию и войти',exact:true}).click();
  await expect(page).toHaveURL(/\/test\/access\/login/);
  expect((await context.cookies()).some(cookie=>cookie.name==='test_access')).toBe(false);
- await page.getByRole('link',{name:'Email · второй',exact:true}).click();
+ await page.getByRole('link',{name:'Email + код',exact:true}).click();
  await expect(page.locator('#report')).toBeVisible();
- expect(await (await context.request.get('/api/session')).json()).toMatchObject({email:'backup@example.test'});
+ expect(await (await context.request.get('/api/session')).json()).toMatchObject({email:'owner@example.test'});
 });
 
-for(const [status,title,reason] of [[401,'Войди заново','expired'],[403,'Этот аккаунт не допущен','denied']]){
+for(const [status,title,reason] of [[401,'Войди заново','expired'],[403,'Этот email не допущен','denied']]){
  test(`a ${status} API response opens a stable recovery screen with a reset action`,async({page})=>{
   await page.goto('/stat-panel/');
   await expect(page.locator('#report')).toBeVisible();
@@ -64,7 +59,7 @@ for(const [status,title,reason] of [[401,'Войди заново','expired'],[4
  });
 }
 
-test('session recovery and account switching work with JavaScript disabled',async({browser})=>{
+test('email-code session recovery works with JavaScript disabled',async({browser})=>{
  const context=await browser.newContext({javaScriptEnabled:false,viewport:{width:390,height:844}});
  try{
   const page=await context.newPage();
@@ -73,9 +68,9 @@ test('session recovery and account switching work with JavaScript disabled',asyn
   await expect(page.getByRole('heading',{name:'Войди заново'})).toBeVisible();
   await page.getByRole('link',{name:'Сбросить сессию и войти',exact:true}).click();
   await expect(page).toHaveURL(/\/test\/access\/login/);
-  await page.getByRole('link',{name:'Email · второй',exact:true}).click();
+  await page.getByRole('link',{name:'Email + код',exact:true}).click();
   await expect(page).toHaveURL(/\/stat-panel\/$/);
   const session=await context.request.get('http://127.0.0.1:8787/api/session');
-  expect(session.status()).toBe(200);expect(await session.json()).toMatchObject({email:'backup@example.test'});
+  expect(session.status()).toBe(200);expect(await session.json()).toMatchObject({email:'owner@example.test'});
  }finally{await context.close();}
 });

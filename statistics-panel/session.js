@@ -34,7 +34,7 @@ export async function accessFetch(url, options = {}) {
   }
   if (response.status === 403) {
     sessionEnded('denied');
-    throw new Error('Этот аккаунт не допущен к панели. Войди другим аккаунтом.');
+    throw new Error('Этот email не допущен к панели. Войди с разрешённого адреса.');
   }
   return response;
 }

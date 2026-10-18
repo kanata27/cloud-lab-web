@@ -10,9 +10,7 @@ import {database} from './database.mjs';
 const root=await build(),{db}=database();
 const tokens={
  valid:await accessToken(),
- alternate:await accessToken({email:'backup@example.test'}),
- cloudflare:await accessToken(),
- denied:await accessToken({email:'stranger@example.test'}),
+ denied:await accessToken({email:'backup@example.test'}),
  expired:await accessToken({exp:Math.floor(Date.now()/1000)-1}),
 };
 globalThis.fetch=async(url)=>keysResponse(url);
@@ -35,10 +33,10 @@ http.createServer(async(req,res)=>{
  try{
   const url=new URL(req.url,origin),cookie=req.headers.cookie||'';
   if(url.pathname==='/test/access/login') {
-   res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'}).end('<!doctype html><html lang="ru"><title>Access test login</title><h1>Cloudflare Access · test fixture</h1><p>No real OTP is sent.</p><a href="/test/access/sign-in?account=primary">Email · основной</a><a href="/test/access/sign-in?account=backup">Email · второй</a><a href="/test/access/sign-in?account=cloudflare">Cloudflare</a></html>');return;
+   res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'}).end('<!doctype html><html lang="ru"><title>Access test login</title><h1>Email + код · test fixture</h1><p>No real OTP is sent.</p><a href="/test/access/sign-in?account=primary">Email + код</a></html>');return;
   }
   if(url.pathname==='/test/access/sign-in'){
-   const identities={primary:'valid',backup:'alternate',cloudflare:'cloudflare'};
+   const identities={primary:'valid'};
    const account=url.searchParams.get('account');
    if(!Object.hasOwn(identities,account)){res.writeHead(400).end('Unknown test identity');return;}
    res.writeHead(302,{'Set-Cookie':`test_access=${identities[account]}; Path=/; HttpOnly; SameSite=Lax`,Location:'/stat-panel/'}).end();return;
@@ -46,7 +44,7 @@ http.createServer(async(req,res)=>{
   if(url.pathname==='/cdn-cgi/access/logout'){
    res.writeHead(302,{'Set-Cookie':'test_access=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax',Location:'/test/access/login'}).end();return;
   }
-  const identity=/(?:^|;\s*)test_access=(valid|alternate|cloudflare|denied|expired)(?:;|$)/.exec(cookie)?.[1];
+  const identity=/(?:^|;\s*)test_access=(valid|denied|expired)(?:;|$)/.exec(cookie)?.[1];
   const authenticated=Boolean(identity);
   const path=decodeURIComponent(url.pathname);
   if(/^\/(?:stat-panel|statpanel|statistics-panel)(?:\/|$)/.test(path)&&!authenticated){
@@ -59,7 +57,7 @@ http.createServer(async(req,res)=>{
   const chunks=[];for await(const chunk of req)chunks.push(chunk);
   const data=Buffer.concat(chunks);
   const request=new Request(url,{method:req.method,headers,body:data.length?data:undefined});
-  const response=await worker.fetch(request,{...accessEnv,ACCESS_ALLOWED_EMAILS:'owner@example.test,backup@example.test',CANONICAL_HOST:'127.0.0.1:8787',PUBLIC_ALIASES:'',EARNINGS_DB:db,ASSETS:assets,EVENTS_RATE_LIMITER:{limit:async()=>({success:true})}});
+  const response=await worker.fetch(request,{...accessEnv,CANONICAL_HOST:'127.0.0.1:8787',PUBLIC_ALIASES:'',EARNINGS_DB:db,ASSETS:assets,EVENTS_RATE_LIMITER:{limit:async()=>({success:true})}});
   res.writeHead(response.status,Object.fromEntries(response.headers));res.end(Buffer.from(await response.arrayBuffer()));
  }catch(error){console.error(error);res.writeHead(500).end('Test server error');}
 }).listen(8787,'127.0.0.1');

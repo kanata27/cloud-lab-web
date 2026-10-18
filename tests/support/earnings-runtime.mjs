@@ -15,13 +15,9 @@ export default {async test(){
  const request=token=>new Request('https://kanata.test/api/session',{headers:token?{'Cf-Access-Jwt-Assertion':token}:{}});
  try{
   await authorize(request(await sign({})),env);
-  const multiple={...env,ACCESS_ALLOWED_EMAILS:'owner@example.test,backup@example.test'};
-  for(const email of ['owner@example.test','backup@example.test']){
-   const identity=await authorize(request(await sign({email})),multiple);
-   if(identity.email!==email)throw Error('An explicitly allowed identity was rejected');
-  }
-  for(const [claims,status] of [[{email:'stranger@example.test'},403],[{aud:['b'.repeat(64)]},401],[{exp:now-1},401]]){
-   let rejected=false;try{await authorize(request(await sign(claims)),env);}catch(e){rejected=e.status===status;}
+  const stale={...env,ACCESS_ALLOWED_EMAILS:'owner@example.test,backup@example.test'};
+  for(const [claims,status] of [[{email:'backup@example.test'},403],[{email:'stranger@example.test'},403],[{aud:['b'.repeat(64)]},401],[{exp:now-1},401]]){
+   let rejected=false;try{await authorize(request(await sign(claims)),stale);}catch(e){rejected=e.status===status;}
    if(!rejected)throw Error('Invalid session accepted');
   }
   let rejected=false;try{await authorize(request(),env);}catch(e){rejected=e.status===401;}
