@@ -7,7 +7,12 @@ import worker from '../../worker/index.js';
 import {accessEnv,accessToken,keysResponse} from './access-fixture.mjs';
 import {database} from './database.mjs';
 
-const root=await build(),{db}=database(),token=await accessToken();
+const root=await build(),{db}=database();
+const tokens={
+ valid:await accessToken(),
+ denied:await accessToken({email:'backup@example.test'}),
+ expired:await accessToken({exp:Math.floor(Date.now()/1000)-1}),
+};
 globalThis.fetch=async(url)=>keysResponse(url);
 const origin='http://127.0.0.1:8787';
 const config=JSON.parse(await readFile(new URL('../../site.config.json',import.meta.url)));
@@ -28,19 +33,26 @@ http.createServer(async(req,res)=>{
  try{
   const url=new URL(req.url,origin),cookie=req.headers.cookie||'';
   if(url.pathname==='/test/access/login') {
-   res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'}).end('<!doctype html><html lang="ru"><title>Access test login</title><h1>Cloudflare Access · test fixture</h1><p>No real OTP is sent.</p></html>');return;
+   res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'}).end('<!doctype html><html lang="ru"><title>Access test login</title><h1>Email + код · test fixture</h1><p>No real OTP is sent.</p><a href="/test/access/sign-in?account=primary">Email + код</a></html>');return;
+  }
+  if(url.pathname==='/test/access/sign-in'){
+   const identities={primary:'valid'};
+   const account=url.searchParams.get('account');
+   if(!Object.hasOwn(identities,account)){res.writeHead(400).end('Unknown test identity');return;}
+   res.writeHead(302,{'Set-Cookie':`test_access=${identities[account]}; Path=/; HttpOnly; SameSite=Lax`,Location:'/stat-panel/'}).end();return;
   }
   if(url.pathname==='/cdn-cgi/access/logout'){
    res.writeHead(302,{'Set-Cookie':'test_access=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax',Location:'/test/access/login'}).end();return;
   }
-  const authenticated=/(?:^|;\s*)test_access=valid(?:;|$)/.test(cookie);
+  const identity=/(?:^|;\s*)test_access=(valid|denied|expired)(?:;|$)/.exec(cookie)?.[1];
+  const authenticated=Boolean(identity);
   const path=decodeURIComponent(url.pathname);
   if(/^\/(?:stat-panel|statpanel|statistics-panel)(?:\/|$)/.test(path)&&!authenticated){
    res.writeHead(302,{Location:'/test/access/login','Cache-Control':'no-store'}).end();return;
   }
   const headers=new Headers();
   for(const [key,value] of Object.entries(req.headers))if(value)headers.set(key,Array.isArray(value)?value.join(','):value);
-  if(authenticated)headers.set('Cf-Access-Jwt-Assertion',token);
+  if(authenticated)headers.set('Cf-Access-Jwt-Assertion',tokens[identity]);
   else headers.delete('Cf-Access-Jwt-Assertion');
   const chunks=[];for await(const chunk of req)chunks.push(chunk);
   const data=Buffer.concat(chunks);

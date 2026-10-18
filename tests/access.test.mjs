@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {authorize} from '../worker/access.js';
+import {authorize,accessSettings} from '../worker/access.js';
 import worker from '../worker/index.js';
 import {accessEnv,accessToken,keysResponse} from './support/access-fixture.mjs';
 const request=token=>new Request('https://kanata.test/api/session',{headers:token?{'Cf-Access-Jwt-Assertion':token}:{}});
@@ -73,4 +73,92 @@ test('authenticated assets are never public-cacheable and unsafe requests are re
     const login=await worker.fetch(new Request('https://kanata.test/stat-panel/login.html',{headers}),env);
     assert.equal(login.status,302);assert.equal(login.headers.get('Location'),'https://kanata.test/stat-panel/earnings.html');
   }finally{globalThis.fetch=original;}
+});
+
+test('only the configured owner is accepted, even when an obsolete multi-address secret remains',async()=>{
+  const original=globalThis.fetch;globalThis.fetch=async(url)=>keysResponse(url);
+  const env={...accessEnv,ACCESS_ALLOWED_EMAIL:' OWNER@example.test ',ACCESS_ALLOWED_EMAILS:'owner@example.test,backup@example.test'};
+  try{
+    assert.equal(accessSettings(env).email,'owner@example.test');
+    for(const email of ['owner@example.test','OWNER@example.test']){
+      const identity=await authorize(request(await accessToken({email})),env);
+      assert.equal(identity.email,email.toLowerCase());
+    }
+    for(const email of ['backup@example.test','stranger@example.test','owner@example.test.attacker.invalid','owner+other@example.test']){
+      await assert.rejects(()=>accessToken({email}).then(token=>authorize(request(token),env)),e=>e.status===403);
+    }
+    for(const claims of [{type:'service'}, {aud:['b'.repeat(64)]}, {exp:Math.floor(Date.now()/1000)-1}]){
+      await assert.rejects(()=>accessToken(claims).then(token=>authorize(request(token),env)),e=>[401,403].includes(e.status));
+    }
+    // Updating the one configured address revokes the previous identity.
+    await assert.rejects(()=>accessToken().then(token=>authorize(request(token),{
+      ...env,ACCESS_ALLOWED_EMAIL:'backup@example.test',
+    })),e=>e.status===403);
+    assert.equal((await authorize(request(await accessToken()),accessEnv)).email,'owner@example.test');
+  }finally{globalThis.fetch=original;}
+});
+
+test('one valid email is required; lists, missing values and a plural-only secret fail closed',()=>{
+  const invalid=['',null,undefined,123,[],{},'owner@example.test,','owner@example.test,backup@example.test',
+    '*@example.test','owner@example.test;backup@example.test','Name <owner@example.test>',
+    'a'.repeat(255)+'@example.test','owner@example.test,'.repeat(300),
+    Array.from({length:9},(_,i)=>`owner${i}@example.test`).join(',')];
+  for(const value of invalid){
+    assert.throws(()=>accessSettings({...accessEnv,ACCESS_ALLOWED_EMAIL:value,ACCESS_ALLOWED_EMAILS:'owner@example.test'}),error=>error.status===503);
+  }
+});
+
+test('a blocked page provides session recovery without leaking the allowlist or loading private assets',async()=>{
+  const original=globalThis.fetch;globalThis.fetch=async(url)=>keysResponse(url);
+  const env={...accessEnv,EARNINGS_DB:{},
+    ASSETS:{fetch(){throw Error('A denied request must not load private assets');}}};
+  try{
+    for(const [token,status,title] of [
+      [null,401,'Войди заново'],
+      [await accessToken({email:'stranger@example.test'}),403,'Этот email не допущен'],
+      [await accessToken({exp:Math.floor(Date.now()/1000)-1}),401,'Войди заново'],
+    ]){
+      const headers={Accept:'text/html'};if(token)headers['Cf-Access-Jwt-Assertion']=token;
+      const response=await worker.fetch(new Request('https://kanata.test/stat-panel/earnings.html',{headers}),env);
+      assert.equal(response.status,status);
+      const html=await response.text();
+      assert.ok(html.includes(`<h1>${title}</h1>`));
+      assert.match(html,/href="\/cdn-cgi\/access\/logout"/);
+      assert.match(html,/Сбросить сессию и войти/);
+      assert.doesNotMatch(html,/owner@example|backup@example|stranger@example|<script/);
+      const nonce=html.match(/<style nonce="([a-f0-9]+)">/)[1];
+      assert.ok(response.headers.get('Content-Security-Policy').includes(`style-src 'nonce-${nonce}'`));
+      assert.match(response.headers.get('Cache-Control'),/no-store/);
+    }
+    const unavailable=await worker.fetch(new Request('https://kanata.test/stat-panel/',{headers:{Accept:'text/html'}}),{
+      ...env,ACCESS_ALLOWED_EMAIL:'',
+    });
+    assert.equal(unavailable.status,503);assert.match(await unavailable.text(),/Вход временно недоступен/);
+  }finally{globalThis.fetch=original;}
+});
+
+test('public recovery remains reachable without a session or database and never reflects return destinations',async()=>{
+  const env={...accessEnv,ASSETS:{fetch(){throw Error('Recovery must be self contained');}}};
+  for(const [suffix,title] of [
+    ['', 'Вход в панель'],['?reason=expired','Войди заново'],['?reason=denied','Этот email не допущен'],
+    ['?reason=constructor&next=https://attacker.invalid','Вход в панель'],
+    ['?reason=%3Cscript%3E&next=//attacker.invalid','Вход в панель'],
+  ]){
+    const response=await worker.fetch(new Request('https://kanata.test/panel-login/'+suffix),env);
+    assert.equal(response.status,200);
+    const html=await response.text();assert.ok(html.includes(`<h1>${title}</h1>`));
+    assert.doesNotMatch(html,/attacker.invalid|<script|owner@example/);
+    assert.doesNotMatch(html,/Cloudflare|выбор способа входа/i);
+    assert.match(response.headers.get('Cache-Control'),/no-store/);
+  }
+  const head=await worker.fetch(new Request('https://kanata.test/panel-login/',{method:'HEAD'}),env);
+  assert.equal(head.status,200);assert.equal(await head.text(),'');
+  const deniedHead=await worker.fetch(new Request('https://kanata.test/stat-panel/',{method:'HEAD',headers:{Accept:'text/html'}}),{
+    ...env,EARNINGS_DB:{},
+  });
+  assert.equal(deniedHead.status,401);assert.equal(await deniedHead.text(),'');
+  assert.equal((await worker.fetch(new Request('https://kanata.test/panel-login/',{method:'POST'}),env)).status,405);
+  assert.equal((await worker.fetch(new Request('https://attacker.invalid/panel-login/'),env)).status,404);
+  const alias=await worker.fetch(new Request('https://www.kanata.test/panel-login/'),env);
+  assert.equal(alias.status,302);assert.equal(alias.headers.get('Location'),'https://kanata.test/panel-login/');
 });
