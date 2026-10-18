@@ -66,7 +66,6 @@ class Dashboard {
       this.setMode(mode); this.syncPresets(); this.load();
       if (mode === "day") this.calendar.open(this.singleDate);
     });
-    byId("time-zone").textContent = timeZone;
     byId("filters").addEventListener("submit", event => {
       event.preventDefault(); this.load();
     });
