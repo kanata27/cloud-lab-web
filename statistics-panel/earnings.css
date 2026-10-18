@@ -78,3 +78,7 @@
  .note-dialog { padding:20px; }
  .note-dialog .drawer-heading h2 { font-size:20px; }
 }
+
+.earnings-metrics { grid-template-columns:repeat(3,minmax(0,1fr)) 144px; }
+.earnings-metrics .metric-count { padding-inline:18px; }
+@media(max-width:760px) { .earnings-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } }

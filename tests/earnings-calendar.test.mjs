@@ -25,13 +25,15 @@ test('calendar covers exactly January through December, including leap years and
 
 test('heat levels use hourly rates, distinguish played zero days and weight multiple performances by time', () => {
   const model = buildEarningsCalendar({year: 2024, days: [
-    {date: '2024-01-01', czkMinor: 40000, eurMinor: 1600, minutes: 480, count: 2},
-    {date: '2024-01-02', czkMinor: 10000, eurMinor: 400, minutes: 60, count: 1},
-    {date: '2024-01-03', czkMinor: 0, eurMinor: 0, minutes: 60, count: 1},
+    {date: '2024-01-01', czkMinor: 40000, eurMinor: 1600, minutes: 480, count: 2, spots: ['Точка A']},
+    {date: '2024-01-02', czkMinor: 10000, eurMinor: 400, minutes: 60, count: 1, spots: ['Точка A']},
+    {date: '2024-01-03', czkMinor: 0, eurMinor: 0, minutes: 60, count: 1, spots: ['Точка A']},
   ]}, 2024);
   assert.deepEqual(model.days.slice(0, 4).map(day => [day.hourCzk, day.hourEur, day.level]), [
     [50, 2, 2], [100, 4, 4], [0, 0, 1], [null, null, 0],
   ]);
+  assert.deepEqual(model.days[0].spots, ['Точка A']);
+  assert.deepEqual(model.days[3].spots, []);
   assert.equal(model.activeDays, 3);
   assert.equal(model.count, 4);
   assert.equal(model.minutes, 600);
@@ -41,9 +43,9 @@ test('heat levels use hourly rates, distinguish played zero days and weight mult
 });
 
 test('incomplete, duplicate, out-of-year, future and unsafe calendar values are rejected', () => {
-  const row = {date: '2024-02-29', czkMinor: 10000, eurMinor: 400, minutes: 60, count: 1};
+  const row = {date: '2024-02-29', czkMinor: 10000, eurMinor: 400, minutes: 60, count: 1, spots: ['Точка A']};
   for (const data of [null, {year: 2024}, {year: 2023, days: []}, {year: 2024, days: [row, row]},
-    ...[{date: '2024-02-30'}, {date: '2023-12-31'}, {count: 0}, {minutes: 0}, {minutes: 1441}, {czkMinor: -1}, {eurMinor: undefined}, {czkMinor: Number.MAX_SAFE_INTEGER + 1}]
+    ...[{date: '2024-02-30'}, {date: '2023-12-31'}, {count: 0}, {minutes: 0}, {minutes: 1441}, {czkMinor: -1}, {eurMinor: undefined}, {spots: undefined}, {spots: []}, {spots: ['a', 'a']}, {spots: ['x'.repeat(81)]}, {spots: ['bad\u0000name']}, {czkMinor: Number.MAX_SAFE_INTEGER + 1}]
       .map(patch => ({year: 2024, days: [{...row, ...patch}]}))]) {
     assert.throws(() => buildEarningsCalendar(data, 2024));
   }
@@ -77,10 +79,12 @@ test('private calendar aggregates the full year in D1, beyond 2000 records, with
     assert.match(response.headers.get('Cache-Control'), /no-store.*private/);
     const data = await response.json();
     assert.deepEqual(data, {year: 2024, days: [
-      {date: '2024-01-01', czkMinor: 200100, eurMinor: 8004, minutes: 120060, count: 2001},
-      {date: '2024-02-29', czkMinor: 40000, eurMinor: 1600, minutes: 240, count: 2},
-      {date: '2024-12-31', czkMinor: 2000, eurMinor: 80, minutes: 60, count: 1},
+      {date: '2024-01-01', czkMinor: 200100, eurMinor: 8004, minutes: 120060, count: 2001, spots: ['Точка A']},
+      {date: '2024-02-29', czkMinor: 40000, eurMinor: 1600, minutes: 240, count: 2, spots: ['Точка A', 'Точка B']},
+      {date: '2024-12-31', czkMinor: 2000, eurMinor: 80, minutes: 60, count: 1, spots: ['Точка A']},
     ]});
+    sqlite.prepare('UPDATE earnings_spots SET name=? WHERE id=?').run('Новое название', 'spot-b');
+    assert.deepEqual((await (await call('?year=2024')).json()).days[1].spots, ['Новое название', 'Точка A']);
     assert.equal(buildEarningsCalendar(data, 2024).days.find(day => day.date === '2024-02-29').hourCzk, 100);
     assert.deepEqual(await (await call('?year=2022')).json(), {year: 2022, days: []});
     for (const query of ['', '?year=', '?year=1999', '?year=2100', '?year=2024.0', '?year=2024%20OR%201=1']) {

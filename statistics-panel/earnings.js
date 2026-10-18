@@ -1,6 +1,7 @@
 import {accessFetch,sessionEnded,logout} from './session.js';
 import {DEFAULT_CURRENCIES,NOTE_MAX_LENGTH,WEEKDAYS,weekdayIndex,today,duration,validateEntry,validateNote,convert,summary} from './earnings-model.js';
 import {DateFilters} from './date-filter.js';
+import {loadEarningsEntries} from './report-loader.js';
 const $=id=>document.getElementById(id);
 const number=new Intl.NumberFormat('ru-RU',{maximumFractionDigits:2}),one=new Intl.NumberFormat('ru-RU',{maximumFractionDigits:1});
 const names=new Intl.DisplayNames(['ru'],{type:'currency'});
@@ -11,12 +12,13 @@ let entries=[],spots=[],editing=null,entryId=null,snapshot=null,rateSerial=0,loa
 let editingSpotId=null,spotSaving=false;
 let noteTarget=null,noteSaving=false;
 let dateFilters;
+let loadRequest;
 function node(tag,text,className){const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(className)n.className=className;return n;}
 function errorAt(id,message){$(id).textContent=message;$(id).hidden=!message;}
 function closeEntryMenus(){document.querySelectorAll('.entry-menu:popover-open').forEach(menu=>menu.hidePopover());}
 function expire(){closeEntryMenus();$('app').hidden=true;for(const d of document.querySelectorAll('dialog[open]'))d.close();sessionEnded();}
 async function api(path,options={}){
- const response=await accessFetch('/earnings-api'+path,{...options,cache:'no-store',headers:{'Content-Type':'application/json',...options.headers},signal:AbortSignal.timeout(20000)});
+ const response=await accessFetch('/earnings-api'+path,{...options,cache:'no-store',headers:{'Content-Type':'application/json',...options.headers},signal:options.signal?AbortSignal.any([options.signal,AbortSignal.timeout(20000)]):AbortSignal.timeout(20000)});
  if(response.status===401){expire();throw new Error('Сессия истекла.');}
  let data;try{data=await response.json();}catch{throw new Error('Сервис заработков пока недоступен.');}
  if(!response.ok)throw new Error(data.error||'Не удалось выполнить запрос.');return data;
@@ -86,10 +88,11 @@ function openSpot(spot=null){
 }
 async function load(){
  closeEntryMenus();
+ loadRequest?.abort();const request=new AbortController();loadRequest=request;
  const serial=++loadSerial;$('show').disabled=true;$('report').hidden=true;errorAt('message','Загрузка…');$('message').classList.remove('error');
  try{
-  const query=new URLSearchParams({...dateFilters.selection(),spot:$('filter-spot').value});
-  const [list,locations]=await Promise.all([api('/entries?'+query),api('/spots')]);
+  const selection={...dateFilters.selection(),spot:$('filter-spot').value};
+  const [list,locations]=await Promise.all([loadEarningsEntries(selection,(query,signal)=>api('/entries?'+new URLSearchParams(query),{signal}),request.signal),api('/spots',{signal:request.signal})]);
   if(serial!==loadSerial)return;entries=list.entries;spots=locations.spots;populateSpots();render();errorAt('message','');$('report').hidden=false;
  }catch(error){if(serial===loadSerial){errorAt('message',error.message);$('message').classList.add('error');}}
  finally{if(serial===loadSerial)$('show').disabled=false;}
@@ -257,7 +260,6 @@ $('entry-form').addEventListener('submit',async event=>{
   dirty=false;$('entry-dialog').close();++rateSerial;
   if(input.date<$('from').value||input.date>$('to').value){
    let from=input.date<$('from').value?input.date:$('from').value,to=input.date>$('to').value?input.date:$('to').value;
-   if((Date.parse(to)-Date.parse(from))/86400000>366)from=to=input.date;
    dateFilters.setRange(from,to);
   }
   if($('filter-spot').value&&$('filter-spot').value!==input.spotId)$('filter-spot').value='';await load();

@@ -7,7 +7,6 @@ const count = value => Number.isSafeInteger(value) && value >= 0;
 function rangeLength(from, to) {
   if (!dateValid(from) || !dateValid(to) || from > to) throw new Error('Проверь выбранный период.');
   const length = (Date.parse(to) - Date.parse(from)) / DAY + 1;
-  if (length > 367) throw new Error('Выбери период не длиннее года.');
   return length;
 }
 

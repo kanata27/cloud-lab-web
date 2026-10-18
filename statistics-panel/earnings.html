@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow,noarchive"><meta name="color-scheme" content="light dark">
-<title>Заработки</title><link rel="icon" href="/assets/favicon.svg"><link rel="stylesheet" href="/stat-panel/earnings.css?v=20261018-3"><link rel="stylesheet" href="/stat-panel/date-filter.css">
-<script src="/site-config.js" defer></script><script type="module" src="/stat-panel/earnings.js?v=20261018-3"></script>
+<title>Заработки</title><link rel="icon" href="/assets/favicon.svg"><link rel="stylesheet" href="/stat-panel/earnings.css?v=20261018-4"><link rel="stylesheet" href="/stat-panel/date-filter.css">
+<script src="/site-config.js" defer></script><script type="module" src="/stat-panel/earnings.js?v=20261018-4"></script>
   <link rel="preload" href="/stat-panel/fonts/golos-text-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/stat-panel/fonts/golos-text-cyrillic-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="/stat-panel/panel-typography.css?v=20261018-3">
+  <link rel="stylesheet" href="/stat-panel/panel-typography.css?v=20261018-4">
 </head>
 <body class="panel-page">
 <main class="shell earnings-shell" id="app" hidden>
@@ -22,8 +22,9 @@
           </div>
           <div class="presets" aria-label="Быстрый выбор периода">
             <button type="button" data-days="1" class="quiet" aria-pressed="false">Сегодня</button>
-            <button type="button" data-days="7" class="quiet" aria-pressed="false">Последняя неделя</button>
-            <button type="button" data-days="30" class="quiet" aria-pressed="true">Последний месяц</button>
+            <button type="button" data-days="7" class="quiet" aria-pressed="false">Неделя</button>
+            <button type="button" data-days="30" class="quiet" aria-pressed="true">Месяц</button>
+            <button type="button" data-months="3" class="quiet" aria-pressed="false">3 месяца</button>
           </div>
         </div>
         <div class="filter-fields">
@@ -43,11 +44,11 @@
           <label class="source-field">Точка<select id="filter-spot"><option value="">Все точки</option></select></label>
           <button type="submit" class="primary" id="show">Показать</button>
         </div>
-        <p class="filter-note muted"><span id="range-note">До года за запрос</span> · время <span id="time-zone">Праги</span></p>
+        <p class="filter-note muted">Время <span id="time-zone">Праги</span></p>
       </form>
 <div id="message" role="status" class="message" hidden></div>
 <section id="report" aria-label="Сводка заработков" hidden>
-<div class="metrics"><article class="panel metric"><h2>Всего</h2><p id="total-czk">—</p><span id="total-eur">—</span></article><article class="panel metric"><h2>В среднем за час</h2><p id="hour-czk">—</p><span id="hour-eur">—</span></article><article class="panel metric"><h2>Время выступлений</h2><p id="total-time">—</p></article><article class="panel metric"><h2>Выступлений</h2><p id="count">—</p></article></div>
+<div class="metrics earnings-metrics"><article class="panel metric"><h2>Всего</h2><p id="total-czk">—</p><span id="total-eur">—</span></article><article class="panel metric"><h2>В среднем за час</h2><p id="hour-czk">—</p><span id="hour-eur">—</span></article><article class="panel metric"><h2>Время выступлений</h2><p id="total-time">—</p></article><article class="panel metric metric-count"><h2>Выступлений</h2><p id="count">—</p></article></div>
 <div class="charts"><section class="panel daily-panel"><div class="section-heading"><h2>Заработок по дням</h2><div class="switch" role="group" aria-label="Показатель графика"><button type="button" data-chart="sum" aria-pressed="true">Сумма</button><button type="button" data-chart="hour" aria-pressed="false">За час</button></div></div><div id="daily-chart" class="daily-chart"></div></section><section class="panel spots-panel" id="spots-panel" hidden><h2>По точкам · за час</h2><div id="spots-chart"></div></section></div>
 <section class="panel performances"><h2>Выступления</h2><div id="empty" class="empty" hidden><p>За этот период выступлений нет.</p></div><div class="table-wrap"><table id="entries-table"><thead><tr><th>Дата</th><th scope="col">День недели</th><th>Время</th><th>Точка</th><th>Получено</th><th>Итого</th><th>За час</th><th><span class="sr-only">Действия</span></th></tr></thead><tbody id="entries-body"></tbody></table></div></section>
 </section>

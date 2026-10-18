@@ -341,8 +341,8 @@ a {
   font-size:14px;
 }
 
-.bar-heading b {
-  font-weight:500;
+.bar-heading .bar-value {
+  font-weight:400;
   font-variant-numeric:tabular-nums;
 }
 
@@ -617,13 +617,13 @@ th:first-child,td:first-child {
 .day-bar-heading strong { font-weight:500; font-size:30px; line-height:1; font-variant-numeric:tabular-nums; letter-spacing:-.035em; }
 .day-bar-track { height:20px; border-radius:5px; background:var(--bg); overflow:hidden; }
 .day-bar-fill { height:100%; border-radius:5px; }
-.bar-heading b { white-space:nowrap; }
+.bar-heading .bar-value { white-space:nowrap; }
 @media(max-width:760px) {
   .filter-fields { grid-template-columns:minmax(0,1fr) auto; }
   .date-fields { grid-column:1 / -1; }
   .filter-fields > button { min-width:122px; }
   .filter-toolbar { gap:15px; }
-  .filter-toolbar .presets { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; width:100%; }
+  .filter-toolbar .presets { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; width:100%; }
   .filter-toolbar .presets button { font-size:12px; padding:7px 6px; min-height:46px; }
   .calendar-selects select { font-size:16px; }
   .date-trigger { min-height:46px; }

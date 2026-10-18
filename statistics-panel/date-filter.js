@@ -113,7 +113,7 @@ export class DateCalendar {
   }
 }
 
-export function validateDateRange(from, to, today, maxDays = 367) {
+export function validateDateRange(from, to, today) {
   const valid = value => /^\d{4}-\d{2}-\d{2}$/.test(value)
     && Number.isFinite(Date.parse(value + 'T00:00:00Z'))
     && new Date(value + 'T00:00:00Z').toISOString().slice(0, 10) === value;
@@ -121,7 +121,6 @@ export function validateDateRange(from, to, today, maxDays = 367) {
   if (from > to) throw new Error('Начало периода должно быть раньше его окончания.');
   if (to > today) throw new Error('Конец периода не может быть позже сегодняшнего дня.');
   const days = (Date.parse(to) - Date.parse(from)) / DAY + 1;
-  if (days > maxDays) throw new Error('Выбери период не длиннее года.');
   return days;
 }
 
@@ -138,10 +137,9 @@ export function presetRange(today, { days, months }) {
 
 // Both pages use the same calendar and the same date/period behaviour.
 export class DateFilters {
-  constructor({ timeZone, onChange, maxDays = 367 }) {
+  constructor({ timeZone, onChange }) {
     this.timeZone = timeZone;
     this.onChange = onChange;
-    this.maxDays = maxDays;
     this.form = byId('filters');
     this.mode = 'period';
     this.singleDate = todayInZone(timeZone);
@@ -189,7 +187,6 @@ export class DateFilters {
     for (const id of ['from', 'to']) byId(id).disabled = mode === 'day';
     this.modeButtons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.mode === mode)));
     byId('date-value').textContent = fullDate(this.singleDate);
-    byId('range-note').textContent = mode === 'day' ? 'Статистика за один день' : 'До года за запрос';
   }
 
   setPreset(preset) {
@@ -223,7 +220,7 @@ export class DateFilters {
     const today = todayInZone(this.timeZone);
     byId('from').max = byId('to').max = today;
     const range = { from: byId('from').value, to: byId('to').value };
-    validateDateRange(range.from, range.to, today, this.maxDays);
+    validateDateRange(range.from, range.to, today);
     return range;
   }
 }

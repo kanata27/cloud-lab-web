@@ -110,7 +110,7 @@
   .filter-fields > button { min-width:122px; min-height:48px; }
   .filter-toolbar { gap:12px; }
   .filter-panel { padding:16px; }
-  .filter-toolbar .presets { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; width:100%; }
+  .filter-toolbar .presets { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; width:100%; }
   .filter-toolbar .presets button { font-size:12px; padding:7px 6px; min-height:46px; }
   .mode-switch { width:100%; }
   .mode-switch button { flex:1; min-height:44px; font-size:14px; }

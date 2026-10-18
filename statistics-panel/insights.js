@@ -1,6 +1,7 @@
 import {accessFetch,sessionEnded,logout} from './session.js';
 import {DateFilters, fullDate} from './date-filter.js';
-import {splitRanges, validateTrafficReport, buildInsights, byWeeks, axisScale, rankWeekdays} from './insights-model.js';
+import {buildInsights, byWeeks, axisScale, rankWeekdays} from './insights-model.js';
+import {loadTrafficReport,loadEarningsEntries} from './report-loader.js';
 import {EarningsCalendar} from './earnings-calendar.js';
 
 const $ = id => document.getElementById(id);
@@ -64,14 +65,12 @@ async function load() {
   message('Загружаем заработки и посещения…');
   try {
     const selection = filters.selection();
-    const ranges = splitRanges(selection.from, selection.to);
     const [traffic, earnings, locations] = await Promise.all([
-      Promise.all(ranges.map(async range => {
+      loadTrafficReport({...selection,source:'all'},async(range,signal) => {
         const query = new URLSearchParams({...range, source: 'all'});
-        const data = await readJSON(`${window.KANATA_CONFIG.apiBase}/stats?${query}`, request.signal, 'посещения');
-        return validateTrafficReport(data, range);
-      })),
-      readJSON('/earnings-api/entries?' + new URLSearchParams({...selection, spot: ''}), request.signal, 'заработки'),
+        return readJSON(`${window.KANATA_CONFIG.apiBase}/stats?${query}`, signal, 'посещения');
+      },request.signal),
+      loadEarningsEntries({...selection,spot:''},(query,signal)=>readJSON('/earnings-api/entries?' + new URLSearchParams(query),signal,'заработки'),request.signal),
       readJSON('/earnings-api/spots', request.signal, 'точки выступлений'),
     ]);
     if (request !== controller || request.signal.aborted) return;
@@ -82,7 +81,7 @@ async function load() {
       spotIds.add(spot.id);
       return false;
     })) throw new Error('Не удалось прочитать точки выступлений.');
-    report = buildInsights({...selection, traffic, entries: earnings.entries});
+    report = buildInsights({...selection, traffic:[traffic], entries: earnings.entries});
     if (earnings.entries.some(entry => !spotIds.has(entry.spotId))) throw new Error('Точка выступления не найдена. Обнови отчёт.');
     weekdayEntries = earnings.entries;
     weekdaySpots = locations.spots;

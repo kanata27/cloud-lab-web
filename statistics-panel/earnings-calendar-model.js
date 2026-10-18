@@ -11,7 +11,10 @@ export function buildEarningsCalendar(data, year, asOf = today()) {
   for (const row of data.days) {
     if (!dateValid(row?.date) || row.date < first || row.date > last || row.date > asOf || records.has(row.date)
         || !safe(row.czkMinor) || !safe(row.eurMinor) || !safe(row.minutes) || !safe(row.count)
-        || row.count < 1 || row.minutes < row.count || row.minutes > row.count * 1440) {
+        || row.count < 1 || row.minutes < row.count || row.minutes > row.count * 1440
+        || !Array.isArray(row.spots) || !row.spots.length || row.spots.length > row.count
+        || new Set(row.spots).size !== row.spots.length
+        || row.spots.some(name => typeof name !== 'string' || !name.trim() || name.length > 80 || /[\u0000-\u001f]/.test(name))) {
       throw new Error('В годовой статистике заработков обнаружена ошибка.');
     }
     records.set(row.date, row);
@@ -21,7 +24,7 @@ export function buildEarningsCalendar(data, year, asOf = today()) {
   for (let date = first; date <= last; date = plusDays(date, 1)) {
     const row = records.get(date);
     if (row) { activeDays++; count += row.count; minutes += row.minutes; czkMinor += row.czkMinor; }
-    days.push({date, count: row?.count || 0, minutes: row?.minutes || 0,
+    days.push({date, count: row?.count || 0, minutes: row?.minutes || 0, spots: row?.spots || [],
       czkMinor: row?.czkMinor || 0, eurMinor: row?.eurMinor || 0,
       hourCzk: row ? row.czkMinor / 100 * 60 / row.minutes : null,
       hourEur: row ? row.eurMinor / 100 * 60 / row.minutes : null, future: date > asOf});

@@ -10,7 +10,7 @@ export const publicFiles = [
   ["index.html", "index.html"],
   ["style.css", "style.css"],
   ["analytics.js", "analytics.js"],
-  ...["index.html", "login.html", "dashboard.js", "login.js", "session.js", "panel-environment.js", "dashboard.css", "login.css", "earnings.html", "earnings.css", "earnings.js", "earnings-model.js", "earnings-calendar.js", "earnings-calendar-model.js", "date-filter.js", "date-filter.css", "insights.html", "insights.css", "insights.js", "insights-model.js", "panel-typography.css"]
+  ...["index.html", "login.html", "dashboard.js", "login.js", "session.js", "panel-environment.js", "dashboard.css", "login.css", "earnings.html", "earnings.css", "earnings.js", "earnings-model.js", "earnings-calendar.js", "earnings-calendar-model.js", "report-loader.js", "date-filter.js", "date-filter.css", "insights.html", "insights.css", "insights.js", "insights-model.js", "panel-typography.css"]
     .map(name => [`statistics-panel/${name}`, `stat-panel/${name}`]),
   ...["golos-text-cyrillic-ext-wght-normal.woff2", "golos-text-cyrillic-wght-normal.woff2", "golos-text-latin-ext-wght-normal.woff2", "golos-text-latin-wght-normal.woff2", "OFL-Golos-Text.txt"]
     .map(name => [`statistics-panel/fonts/${name}`, `stat-panel/fonts/${name}`]),

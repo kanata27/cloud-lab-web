@@ -3,14 +3,14 @@ import {trafficReport, earning} from '../support/insights-fixtures.mjs';
 
 function calendarData(year) {
   return {year, days: year === 2026 ? [
-    {date: '2026-01-02', czkMinor: 10000, eurMinor: 400, minutes: 60, count: 1},
-    {date: '2026-09-28', czkMinor: 40000, eurMinor: 1600, minutes: 480, count: 2},
-    {date: '2026-10-09', czkMinor: 31500, eurMinor: 1260, minutes: 180, count: 2},
-    {date: '2026-10-10', czkMinor: 0, eurMinor: 0, minutes: 60, count: 1},
+    {date: '2026-01-02', czkMinor: 10000, eurMinor: 400, minutes: 60, count: 1, spots: ['Точка A']},
+    {date: '2026-09-28', czkMinor: 40000, eurMinor: 1600, minutes: 480, count: 2, spots: ['Точка A']},
+    {date: '2026-10-09', czkMinor: 31500, eurMinor: 1260, minutes: 180, count: 2, spots: ['Точка A', 'Точка B']},
+    {date: '2026-10-10', czkMinor: 0, eurMinor: 0, minutes: 60, count: 1, spots: ['Точка A']},
   ] : year === 2024 ? [
-    {date: '2024-01-01', czkMinor: 10000, eurMinor: 400, minutes: 60, count: 1},
-    {date: '2024-02-29', czkMinor: 20000, eurMinor: 800, minutes: 120, count: 2},
-    {date: '2024-12-31', czkMinor: 6000, eurMinor: 240, minutes: 60, count: 1},
+    {date: '2024-01-01', czkMinor: 10000, eurMinor: 400, minutes: 60, count: 1, spots: ['Точка A']},
+    {date: '2024-02-29', czkMinor: 20000, eurMinor: 800, minutes: 120, count: 2, spots: ['Точка A']},
+    {date: '2024-12-31', czkMinor: 6000, eurMinor: 240, minutes: 60, count: 1, spots: ['Точка A']},
   ] : []};
 }
 
@@ -52,6 +52,7 @@ test('annual heatmap shows the whole year, uses hourly intensity and stays indep
   await expect(page.locator('#report')).toBeVisible();
   await expect(page.locator('#annual-report')).toBeVisible();
   await expect(page.locator('#annual-year')).toHaveValue('2026');
+  await expect(page.locator('#annual-year option')).toHaveText(['2026', '2025', '2024']);
   await expect(page.locator('.annual-day')).toHaveCount(365);
   await expect(page.locator('.annual-day').first()).toHaveAttribute('data-date', '2026-01-01');
   await expect(page.locator('.annual-day').last()).toHaveAttribute('data-date', '2026-12-31');
@@ -68,7 +69,11 @@ test('annual heatmap shows the whole year, uses hourly intensity and stays indep
   await page.locator('#annual-days [data-date="2026-10-09"]').hover();
   await expect(page.locator('#annual-tooltip')).toBeVisible();
   await expect(page.locator('#annual-tooltip')).toContainText('105 Kč (4,2 €)');
-  await expect(page.locator('#annual-tooltip dd')).toHaveText(['105 Kč (4,2 €)', '3 ч', '2']);
+  await expect(page.locator('#annual-tooltip dd')).toHaveText(['105 Kč (4,2 €)', '3 ч', 'Точка A · Точка B']);
+  await expect(page.locator('#annual-tooltip dt')).toHaveText(['За час', 'Время', 'Точки']);
+  await page.locator('#annual-days [data-date="2026-01-02"]').hover();
+  await expect(page.locator('#annual-tooltip dd')).toHaveText(['100 Kč (4 €)', '1 ч', 'Точка A']);
+  await expect(page.locator('#annual-tooltip dt')).toHaveText(['За час', 'Время', 'Точка']);
   await page.locator('#from').fill('2026-10-01');await page.locator('#to').fill('2026-10-02');await page.locator('#show').click();
   await expect(page.locator('#report')).toBeVisible();
   await expect(page.locator('#total-czk')).toHaveText('0 Kč');

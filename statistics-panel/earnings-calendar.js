@@ -24,7 +24,7 @@ export class EarningsCalendar {
     this.anchor = null;
     const listen = (element, event, handler, options = {}) => element.addEventListener(event, handler, {...options, signal: this.events.signal});
     const year = Number(this.asOf.slice(0, 4));
-    $('annual-year').replaceChildren(...Array.from({length: year - 1999}, (_, index) => new Option(String(year - index), String(year - index))));
+    $('annual-year').replaceChildren(...Array.from({length: year - 2023}, (_, index) => new Option(String(year - index), String(year - index))));
     listen($('annual-year'), 'change', () => this.load());
     listen($('annual-retry'), 'click', () => this.load());
     listen($('annual-days'), 'pointerover', event => {
@@ -114,7 +114,7 @@ export class EarningsCalendar {
       }
       if (day.date === this.asOf) button.setAttribute('aria-current', 'date');
       const detail = day.future ? 'день ещё не наступил' : day.count
-        ? `${amount.format(day.hourCzk)} Kč/ч (${amount.format(day.hourEur)} €/ч), выступлений: ${day.count}, время: ${time(day.minutes)}`
+        ? `${amount.format(day.hourCzk)} Kč/ч (${amount.format(day.hourEur)} €/ч), ${day.spots.join(' · ')}, время: ${time(day.minutes)}`
         : 'выступлений не было';
       button.setAttribute('aria-label', `${fullDate(day.date)}: ${detail}`);
       return button;
@@ -155,7 +155,7 @@ export class EarningsCalendar {
     tooltip.replaceChildren(node('strong', fullDate(day.date)));
     if (day.count) {
       const list = node('dl');
-      for (const [name, value] of [['За час', `${amount.format(day.hourCzk)} Kč (${amount.format(day.hourEur)} €)`], ['Время', time(day.minutes)], ['Выступлений', String(day.count)]]) {
+      for (const [name, value] of [['За час', `${amount.format(day.hourCzk)} Kč (${amount.format(day.hourEur)} €)`], ['Время', time(day.minutes)], [day.spots.length > 1 ? 'Точки' : 'Точка', day.spots.join(' · ')]]) {
         list.append(node('dt', name), node('dd', value));
       }
       tooltip.append(list);
