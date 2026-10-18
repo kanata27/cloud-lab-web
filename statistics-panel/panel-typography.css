@@ -35,6 +35,10 @@
 
 /* One typography source for Visits, Earnings and Insights. Load last. */
 body.panel-page {
+  --accent:#8c739b;
+  --accent-soft:#eee8f2;
+  --accent-button:#765b86;
+  --on-accent:#fff;
   --panel-font:"Golos Text",system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
   --panel-type-ink:#242724;
   --panel-type-muted:#676a65;
@@ -51,6 +55,17 @@ body.panel-page {
 
 body.panel-page :is(button,input,select,textarea) { font-family:var(--panel-font); font-weight:400; }
 /* Keep tab baselines and the active underline identical on all three pages. */
+body.panel-page :is(.stats-shell,.shell) { width:100%; max-width:1440px; margin-inline:auto; padding-inline:40px; }
+@media(max-width:1100px) {
+  body.panel-page :is(.stats-shell,.shell) { padding-inline:24px; }
+}
+@media(min-width:1000px) {
+  /* Align all reports with the space reserved beside the Earnings action. */
+  body.panel-page :is(.stats-shell,.shell) { padding-right:clamp(40px,calc(856px - 50%),136px); }
+}
+@media(max-width:700px) {
+  body.panel-page :is(.stats-shell,.shell) { padding-inline:16px; }
+}
 body.panel-page .stats-shell { padding-top:0; }
 body.panel-page .masthead {
   display:flex;
@@ -94,7 +109,7 @@ body.panel-page .masthead nav a::after {
   height:2px;
   background:transparent;
 }
-body.panel-page .masthead nav a[aria-current="page"]::after { background:#63816f; }
+body.panel-page .masthead nav a[aria-current="page"]::after { background:var(--accent); }
 body.panel-page .masthead #logout { font-size:13px; font-weight:400; line-height:1.5; }
 body.panel-page .preview-environment { display:flex; justify-content:center; flex:1; min-width:0; }
 body.panel-page .preview-badge { display:inline-flex; align-items:center; gap:7px; padding:7px 11px; border:1px solid #d9ad64; border-radius:7px; background:#fff1cf; color:#854b0d; font-size:12px; font-weight:600; line-height:1.3; letter-spacing:.04em; white-space:nowrap; }
@@ -188,8 +203,8 @@ body.panel-page .performances td strong { font-weight:400; }
 body.panel-page .performances .entry-trigger { font-size:24px; }
 
 @media(prefers-color-scheme:dark) {
-  body.panel-page { --panel-type-ink:#eceee7; --panel-type-muted:#adb4ad; --panel-type-surface:#252927; }
-  body.panel-page .masthead nav a[aria-current="page"]::after { background:#91b39b; }
+  body.panel-page { --accent:#b69bc8; --accent-soft:#38303f; --accent-button:#b69bc8; --on-accent:#25202b; --panel-type-ink:#eceee7; --panel-type-muted:#adb4ad; --panel-type-surface:#252927; }
+  body.panel-page .masthead nav a[aria-current="page"]::after { background:var(--accent); }
 }
 @media(max-width:999px) {
   body.panel-page .masthead {

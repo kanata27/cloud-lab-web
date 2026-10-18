@@ -126,7 +126,13 @@ function drawWeekdays() {
     bar.max = peak;
     bar.value = day.hourCzk;
     bar.setAttribute('aria-hidden', 'true');
-    row.append(name, value, bar);
+    const track = node('div'), count = node('span', String(day.count));
+    track.className = 'weekday-track';
+    count.className = 'weekday-count';
+    count.setAttribute('aria-label', `Выступлений: ${day.count}`);
+    count.title = `Выступлений: ${day.count}`;
+    track.append(count, bar);
+    row.append(name, value, track);
     return row;
   });
   $('weekday-ranking').replaceChildren(...rows);

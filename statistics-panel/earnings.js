@@ -1,5 +1,5 @@
 import {accessFetch,sessionEnded,logout} from './session.js';
-import {DEFAULT_CURRENCIES,WEEKDAYS,weekdayIndex,today,duration,validateEntry,convert,summary} from './earnings-model.js';
+import {DEFAULT_CURRENCIES,NOTE_MAX_LENGTH,WEEKDAYS,weekdayIndex,today,duration,validateEntry,validateNote,convert,summary} from './earnings-model.js';
 import {DateFilters} from './date-filter.js';
 const $=id=>document.getElementById(id);
 const number=new Intl.NumberFormat('ru-RU',{maximumFractionDigits:2}),one=new Intl.NumberFormat('ru-RU',{maximumFractionDigits:1});
@@ -9,6 +9,7 @@ const hours=m=>`${Math.floor(m/60)} ч ${m%60?`${m%60} мин`:''}`.trim();
 const shortDate=d=>new Intl.DateTimeFormat('ru-RU',{day:'numeric',month:'short',timeZone:'UTC'}).format(new Date(d));
 let entries=[],spots=[],editing=null,entryId=null,snapshot=null,rateSerial=0,loadSerial=0,chartMode='sum',saving=false,dirty=false,deleteTarget=null;
 let editingSpotId=null,spotSaving=false;
+let noteTarget=null,noteSaving=false;
 let dateFilters;
 function node(tag,text,className){const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(className)n.className=className;return n;}
 function errorAt(id,message){$(id).textContent=message;$(id).hidden=!message;}
@@ -101,7 +102,19 @@ function render(){
  $('empty').hidden=entries.length>0;$('entries-table').hidden=!entries.length;
  const body=$('entries-body');body.replaceChildren();
  for(const entry of entries){
-  const tr=node('tr');tr.append(node('td',entry.date.split('-').reverse().join('.')),node('td',WEEKDAYS[weekdayIndex(entry.date)],'entry-weekday'));
+  const tr=node('tr',undefined,'performance-row'),date=entry.date.split('-').reverse().join('.');tr.dataset.entryId=entry.id;
+  const dateCell=node('td'),noteTrigger=node('button',date,'entry-note-trigger');noteTrigger.type='button';
+  noteTrigger.setAttribute('aria-label',`Заметка к выступлению ${date}`);noteTrigger.setAttribute('aria-haspopup','dialog');noteTrigger.setAttribute('aria-controls','note-dialog');
+  if(entry.note){
+   const icon=svgNode('svg',{viewBox:'0 0 24 24',width:15,height:15,fill:'none',stroke:'currentColor','stroke-width':1.6,'aria-hidden':'true'});
+   icon.append(svgNode('path',{d:'M14 3H5v18h14V8zM14 3v5h5M8 12h8M8 16h6'}));noteTrigger.append(icon);
+  }
+  noteTrigger.addEventListener('click',()=>openNote(entry));dateCell.append(noteTrigger);
+  tr.addEventListener('click',event=>{
+   if(event.target.closest('button,a,input,select,textarea,[popover]')||event.ctrlKey||event.metaKey||event.shiftKey||getSelection()?.toString())return;
+   openNote(entry);
+  });
+  tr.append(dateCell,node('td',WEEKDAYS[weekdayIndex(entry.date)],'entry-weekday'));
   const time=node('td',`${entry.start}–${entry.end}`);time.append(node('small',hours(entry.minutes)));tr.append(time);
   tr.append(node('td',spots.find(s=>s.id===entry.spotId)?.name||'Точка'));
   tr.append(node('td',entry.amounts.filter(a=>a.minor>0).map(a=>money(a.minor,a.currency)).join(' · ')||'0 CZK'));
@@ -175,7 +188,7 @@ function currencyRow(currency,amount='0',required=false){
  if(required){label.append(input);row.append(label);}else{row.append(input);const remove=node('button','×','icon-button');remove.type='button';remove.setAttribute('aria-label','Убрать валюту');remove.addEventListener('click',()=>{row.remove();dirty=true;updateEstimate();});row.append(remove);}
  $('amounts').append(row);
 }
-function inputData(){return {id:entryId,version:editing?.version,date:$('entry-date').value,start:$('entry-start').value,end:$('entry-end').value,nextDay:$('next-day').checked,spotId:$('entry-spot').value,amounts:[...$('amounts').children].map(row=>({currency:row.dataset.currency||row.querySelector('select').value,amount:row.querySelector('input').value}))};}
+function inputData(){return {id:entryId,version:editing?.version,date:$('entry-date').value,start:$('entry-start').value,end:$('entry-end').value,nextDay:$('next-day').checked,spotId:$('entry-spot').value,note:$('entry-note').value,amounts:[...$('amounts').children].map(row=>({currency:row.dataset.currency||row.querySelector('select').value,amount:row.querySelector('input').value}))};}
 function updateEstimate(){
  $('estimate-total').textContent='—';$('estimate-hour').textContent='—';
  try{const d=duration($('entry-date').value,$('entry-start').value,$('entry-end').value,$('next-day').checked);$('duration').textContent=hours(d.minutes)+' · время Праги';}catch{$('duration').textContent='Время Праги';}
@@ -192,6 +205,7 @@ function openEntry(entry=null){
  editing=entry;entryId=entry?.id||crypto.randomUUID();dirty=false;saving=false;snapshot=null;$('entry-form').reset();$('amounts').replaceChildren();errorAt('form-error','');
  $('entry-title').textContent=entry?'Изменить выступление':'Добавить выступление';$('save-entry').textContent=entry?'Сохранить изменения':'Сохранить запись';
  $('entry-date').max=today();$('entry-date').value=entry?.date||today();$('entry-start').value=entry?.start||'';$('entry-end').value=entry?.end||'';$('next-day').checked=entry?.nextDay||false;
+ $('entry-note').value=entry?.note||'';
  populateSpots();$('entry-spot').value=entry?.spotId||$('filter-spot').value||spots[0]?.id||'';
  syncSpotPicker();
  DEFAULT_CURRENCIES.forEach(c=>currencyRow(c,String((entry?.amounts.find(a=>a.currency===c)?.minor||0)/100),true));
@@ -199,6 +213,36 @@ function openEntry(entry=null){
  $('entry-dialog').showModal();loadRates();
 }
 function closeEntry(){if(saving)return;if(dirty&&!confirm('Закрыть без сохранения изменений?'))return;++rateSerial;if($('spot-picker-menu').matches(':popover-open'))$('spot-picker-menu').hidePopover();$('entry-dialog').close();}
+function openNote(entry){
+ closeEntryMenus();noteTarget=entry;errorAt('note-error','');
+ $('note-text').value=entry.note||'';
+ $('note-context').textContent=`${entry.date.split('-').reverse().join('.')} · ${WEEKDAYS[weekdayIndex(entry.date)]} · ${entry.start}–${entry.end} · ${spots.find(spot=>spot.id===entry.spotId)?.name||'Точка'}`;
+ updateNoteCount();$('note-dialog').showModal();$('note-text').focus();
+}
+function updateNoteCount(){$('note-count').textContent=`${$('note-text').value.length} / ${NOTE_MAX_LENGTH}`;}
+function closeNote(){
+ if(noteSaving)return;
+ if($('note-text').value!==(noteTarget?.note||'')&&!confirm('Закрыть без сохранения заметки?'))return;
+ $('note-dialog').close();
+}
+for(const id of ['close-note','cancel-note'])$(id).addEventListener('click',closeNote);
+$('note-dialog').addEventListener('cancel',event=>{event.preventDefault();closeNote();});
+$('note-dialog').addEventListener('close',()=>{
+ if($('app').hidden)return;
+ [...$('entries-body').children].find(row=>row.dataset.entryId===noteTarget?.id)?.querySelector('.entry-note-trigger').focus({preventScroll:true});
+});
+$('note-text').addEventListener('input',updateNoteCount);
+$('note-form').addEventListener('submit',async event=>{
+ event.preventDefault();if(noteSaving||!noteTarget)return;
+ errorAt('note-error','');noteSaving=true;
+ for(const id of ['save-note','cancel-note','close-note','note-text'])$(id).disabled=true;
+ try{
+  const note=validateNote($('note-text').value);
+  const saved=await api(`/entries/${noteTarget.id}/note`,{method:'PUT',body:JSON.stringify({version:noteTarget.version,note})});
+  entries=entries.map(entry=>entry.id===saved.id?saved:entry);render();$('note-dialog').close();
+ }catch(error){errorAt('note-error',error.message);}
+ finally{noteSaving=false;for(const id of ['save-note','cancel-note','close-note','note-text'])$(id).disabled=false;}
+});
 $('add-entry').addEventListener('click',()=>openEntry());
 for(const id of ['close-entry','cancel-entry'])$(id).addEventListener('click',closeEntry);
 $('entry-dialog').addEventListener('cancel',e=>{e.preventDefault();closeEntry();});

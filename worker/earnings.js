@@ -1,5 +1,5 @@
 import {body,fail} from './http.js';
-import {dateValid,today,validateEntry,convert} from '../statistics-panel/earnings-model.js';
+import {dateValid,today,validateEntry,validateNote,convert} from '../statistics-panel/earnings-model.js';
 const PREFIX='/earnings-api';
 const json=(data,status=200)=>Response.json(data,{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','X-Frame-Options':'DENY','Content-Security-Policy':"default-src 'none'; frame-ancestors 'none'",'Vary':'Authorization'}});
 function spotName(data){
@@ -24,7 +24,7 @@ export async function ratesFor(date,db,fetcher=fetch) {
   await db.prepare('INSERT INTO earnings_rates(date,payload,fetched_at) VALUES(?,?,?) ON CONFLICT(date) DO UPDATE SET payload=excluded.payload,fetched_at=excluded.fetched_at').bind(date,JSON.stringify(snapshot),new Date().toISOString()).run();
   return snapshot;
 }
-function entryOf(row){return {...JSON.parse(row.payload),id:row.id,version:row.version,createdAt:row.created_at,updatedAt:row.updated_at};}
+function entryOf(row){return {note:'',...JSON.parse(row.payload),id:row.id,version:row.version,createdAt:row.created_at,updatedAt:row.updated_at};}
 export default {async fetch(request,env) {
   const url=new URL(request.url);
   if(!url.pathname.startsWith(PREFIX+'/')) return env.ASSETS.fetch(request);
@@ -61,6 +61,19 @@ export default {async fetch(request,env) {
       if(rows.results.length>2000) fail('Слишком много записей. Сократи период.');
       return json({entries:rows.results.map(entryOf)});
     }
+    const noteMatch=path.match(/^\/entries\/([\w-]{1,64})\/note$/);
+    if(noteMatch&&request.method==='PUT'){
+      const input=await body(request),id=noteMatch[1];
+      const previous=await db.prepare('SELECT * FROM earnings_entries WHERE id=?').bind(id).first();
+      if(!previous) fail('Выступление не найдено. Обнови страницу.',404);
+      if(!Number.isInteger(input.version)||input.version!==previous.version) fail('Выступление изменено в другой вкладке. Обнови страницу перед сохранением заметки.',409);
+      let note;try{note=validateNote(input.note);}catch(error){fail(error.message);}
+      // Keep money, rates and timing exactly as stored; notes need no FX lookup.
+      const payload=JSON.stringify({...JSON.parse(previous.payload),note});
+      const result=await db.prepare('UPDATE earnings_entries SET payload=?,version=version+1,updated_at=? WHERE id=? AND version=?').bind(payload,new Date().toISOString(),id,input.version).run();
+      if(result.meta.changes!==1) fail('Выступление уже изменено. Обнови страницу перед сохранением заметки.',409);
+      return json(entryOf(await db.prepare('SELECT * FROM earnings_entries WHERE id=?').bind(id).first()));
+    }
     const match=path.match(/^\/entries\/([\w-]{1,64})$/);
     if((path==='/entries'&&request.method==='POST')||(match&&request.method==='PUT')){
       const input=await body(request),id=match?match[1]:input.id;
@@ -68,7 +81,7 @@ export default {async fetch(request,env) {
       const previous=await db.prepare('SELECT * FROM earnings_entries WHERE id=?').bind(id).first();
       if(match&&!previous) fail('Запись не найдена.',404);
       if(match&&(!Number.isInteger(input.version)||input.version!==previous.version)) fail('Запись изменена в другой вкладке. Обнови страницу.',409);
-      let record;try{record=validateEntry(input);}catch(error){fail(error.message);}
+      let record;try{record=validateEntry({...input,note:input.note===undefined&&previous?entryOf(previous).note:input.note});}catch(error){fail(error.message);}
       const spot=await db.prepare('SELECT id FROM earnings_spots WHERE id=?').bind(record.spotId).first();
       if(!spot) fail('Эта точка не найдена.');
       const old=previous?entryOf(previous):null;

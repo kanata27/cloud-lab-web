@@ -1,4 +1,11 @@
 export const DEFAULT_CURRENCIES = ['CZK', 'EUR', 'USD'];
+export const NOTE_MAX_LENGTH = 2000;
+export function validateNote(value) {
+  if (typeof value !== 'string' || value.length > NOTE_MAX_LENGTH || /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(value)) {
+    throw new Error(`Заметка должна содержать не больше ${NOTE_MAX_LENGTH} символов.`);
+  }
+  return value.replace(/\r\n?/g, '\n').trim();
+}
 export const WEEKDAYS = Object.freeze(['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье']);
 export function dateValid(value) {
   return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) && Number.isFinite(Date.parse(value)) && new Date(value).toISOString().slice(0,10) === value;
@@ -46,7 +53,7 @@ export function validateEntry(input, now=Date.now()) {
     seen.add(row.currency);return {currency:row.currency,minor:parseAmount(row.amount)};
   });
   if(!DEFAULT_CURRENCIES.every(c=>seen.has(c))) throw new Error('Заполни CZK, EUR и USD; можно указать 0.');
-  return {date:input.date,start:input.start,end:input.end,nextDay:input.nextDay,spotId:input.spotId,amounts,...time};
+  return {date:input.date,start:input.start,end:input.end,nextDay:input.nextDay,spotId:input.spotId,amounts,note:validateNote(input.note === undefined ? '' : input.note),...time};
 }
 export function convert(amounts,snapshot) {
   let czk=0;
