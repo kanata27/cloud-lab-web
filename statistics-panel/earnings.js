@@ -2,6 +2,7 @@ import {accessFetch,sessionEnded,logout} from './session.js';
 import {DEFAULT_CURRENCIES,NOTE_MAX_LENGTH,WEEKDAYS,weekdayIndex,today,duration,validateEntry,validateNote,convert,summary} from './earnings-model.js';
 import {DateFilters} from './date-filter.js';
 import {loadEarningsEntries} from './report-loader.js';
+import {CurrencySummary} from './currency-summary.js';
 const $=id=>document.getElementById(id);
 const number=new Intl.NumberFormat('ru-RU',{maximumFractionDigits:2}),one=new Intl.NumberFormat('ru-RU',{maximumFractionDigits:1});
 const names=new Intl.DisplayNames(['ru'],{type:'currency'});
@@ -11,12 +12,12 @@ const shortDate=d=>new Intl.DateTimeFormat('ru-RU',{day:'numeric',month:'short',
 let entries=[],spots=[],editing=null,entryId=null,snapshot=null,rateSerial=0,loadSerial=0,chartMode='sum',saving=false,dirty=false,deleteTarget=null;
 let editingSpotId=null,spotSaving=false;
 let noteTarget=null,noteSaving=false;
-let dateFilters;
+let dateFilters,currencySummary;
 let loadRequest;
 function node(tag,text,className){const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(className)n.className=className;return n;}
 function errorAt(id,message){$(id).textContent=message;$(id).hidden=!message;}
 function closeEntryMenus(){document.querySelectorAll('.entry-menu:popover-open').forEach(menu=>menu.hidePopover());}
-function expire(){closeEntryMenus();$('app').hidden=true;for(const d of document.querySelectorAll('dialog[open]'))d.close();sessionEnded();}
+function expire(){currencySummary?.reset();closeEntryMenus();$('app').hidden=true;for(const d of document.querySelectorAll('dialog[open]'))d.close();sessionEnded();}
 async function api(path,options={}){
  const response=await accessFetch('/earnings-api'+path,{...options,cache:'no-store',headers:{'Content-Type':'application/json',...options.headers},signal:options.signal?AbortSignal.any([options.signal,AbortSignal.timeout(20000)]):AbortSignal.timeout(20000)});
  if(response.status===401){expire();throw new Error('Сессия истекла.');}
@@ -87,7 +88,7 @@ function openSpot(spot=null){
  $('spot-dialog').showModal();$('spot-name').focus();$('spot-name').select();
 }
 async function load(){
- closeEntryMenus();
+ closeEntryMenus();currencySummary?.reset();
  loadRequest?.abort();const request=new AbortController();loadRequest=request;
  const serial=++loadSerial;$('show').disabled=true;$('report').hidden=true;errorAt('message','Загрузка…');$('message').classList.remove('error');
  try{
@@ -133,6 +134,7 @@ function render(){
   menu.append(edit,remove);controls.append(trigger,menu);actions.append(controls);tr.append(actions);body.append(tr);
  }
  renderCharts();
+ currencySummary.update(entries);
 }
 function positionEntryMenu(trigger,menu){
  const anchor=trigger.getBoundingClientRect(),box=menu.getBoundingClientRect(),edge=8,gap=6;
@@ -307,4 +309,4 @@ window.addEventListener('resize',closeEntryMenus);document.addEventListener('scr
 window.addEventListener('resize',()=>{if($('spot-picker-menu').matches(':popover-open'))positionSpotPicker();});
 document.addEventListener('scroll',()=>{if($('spot-picker-menu').matches(':popover-open'))positionSpotPicker();},true);
 new ResizeObserver(()=>{if(!$('report').hidden)renderCharts();}).observe($('daily-chart'));
-{dateFilters=new DateFilters({timeZone:'Europe/Prague',onChange:load});$('app').hidden=false;load();}
+{currencySummary=new CurrencySummary({read:(date,signal)=>api('/rates?'+new URLSearchParams({date}),{signal})});dateFilters=new DateFilters({timeZone:'Europe/Prague',onChange:load});$('app').hidden=false;load();}
