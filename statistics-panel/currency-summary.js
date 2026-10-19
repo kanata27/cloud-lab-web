@@ -143,8 +143,5 @@ export class CurrencySummary {
     button.hidden = this.totals.length <= 3;
     button.setAttribute('aria-expanded', String(this.expanded));
     button.textContent = this.expanded ? 'Свернуть' : `Показать ещё ${this.totals.length - 3}`;
-    const chevron = node('span', this.expanded ? '⌃' : '⌄', 'currency-chevron');
-    chevron.setAttribute('aria-hidden', 'true');
-    button.append(chevron);
   }
 }

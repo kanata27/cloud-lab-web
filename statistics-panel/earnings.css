@@ -104,9 +104,8 @@
 .currency-status-row { display:flex; align-items:center; flex-wrap:wrap; gap:10px 16px; }
 .currency-status-row p { margin:14px 0 0; font-size:13px; }
 .currency-status-row button { margin-top:14px; font-size:13px; }
-.currency-toggle { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; margin-top:18px; padding:16px 12px 0; min-height:44px; border:0; border-top:1px solid var(--line); border-radius:0; background:transparent; font-size:14px; }
-.currency-toggle:hover { background:transparent; text-decoration:underline; text-underline-offset:4px; }
-.currency-chevron { font-size:20px; line-height:1; }
+.currency-toggle { display:block; width:100%; margin-top:18px; padding:16px 12px 0; min-height:44px; border:0; border-top:1px solid var(--line); border-radius:0; background:transparent; font-size:14px; text-decoration:none; }
+.currency-toggle:hover { background:transparent; color:var(--accent); text-decoration:none; }
 @media(max-width:1000px) {
  .currency-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
  .foreign-currency { padding:18px 20px; border-left:0; border-top:0; }
