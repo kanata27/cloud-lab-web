@@ -4,7 +4,7 @@ import {DatabaseSync} from 'node:sqlite';
 import {readFileSync} from 'node:fs';
 import worker from '../worker/index.js';
 import {accessEnv,accessToken,keysResponse} from './support/access-fixture.mjs';
-import {duration,validateEntry,convert,summary} from '../statistics-panel/earnings-model.js';
+import {duration,validateEntry,convert,summary,weeklyFrequency} from '../statistics-panel/earnings-model.js';
 const base={id:'record-1',date:'2026-09-01',start:'14:20',end:'17:12',nextDay:false,spotId:'spot-a',amounts:[{currency:'CZK',amount:'220'},{currency:'EUR',amount:'2,2'},{currency:'USD',amount:'2'}]};
 test('duration, mixed currencies, weighted hourly totals and DST validation',()=>{
  const record=validateEntry(base);assert.equal(record.minutes,172);
@@ -17,6 +17,41 @@ test('duration, mixed currencies, weighted hourly totals and DST validation',()=
  assert.throws(()=>validateEntry({...base,amounts:[...base.amounts,{currency:'EUR',amount:'1'}]}));
  assert.throws(()=>validateEntry({...base,end:'13:00'}));
  assert.throws(()=>validateEntry({...base,amounts:base.amounts.map(a=>({...a,amount:'-1'}))}));
+});
+
+test('average duration weights each performance equally and keeps precise monetary totals',()=>{
+ const entries=[
+  {date:'2026-10-01',spotId:'a',minutes:120,czkMinor:13860,eurMinor:554},
+  {date:'2026-10-01',spotId:'b',minutes:180,czkMinor:22040,eurMinor:882},
+  {date:'2026-10-19',spotId:'a',minutes:81,czkMinor:5050,eurMinor:202},
+ ];
+ const totals=summary(entries);
+ assert.equal(totals.averageMinutes,127);
+ assert.equal(totals.count,3);
+ assert.equal(totals.czkMinor,40950);
+ assert.equal(summary(entries.filter(entry=>entry.spotId==='a')).averageMinutes,100.5);
+ assert.equal(summary(entries.slice(0,2)).averageMinutes,150);
+ assert.equal(summary([]).averageMinutes,null);
+});
+
+test('weekly frequency uses only complete Monday–Sunday weeks, including zero weeks',()=>{
+ const entries=['2026-10-04','2026-10-06','2026-10-08','2026-10-13','2026-10-15','2026-10-18','2026-10-19'].map(date=>({date}));
+ assert.deepEqual(weeklyFrequency(entries,{from:'2026-10-05',to:'2026-10-18'}),{weeks:2,count:5,from:'2026-10-05',to:'2026-10-18',average:2.5});
+ assert.deepEqual(weeklyFrequency(entries,{from:'2026-10-01',to:'2026-10-20'}),{weeks:2,count:5,from:'2026-10-05',to:'2026-10-18',average:2.5});
+ assert.equal(weeklyFrequency(entries,{from:'2026-10-06',to:'2026-10-18'}).average,3);
+ assert.equal(weeklyFrequency(entries,{from:'2026-09-21',to:'2026-10-18'}).average,1.5);
+ assert.equal(weeklyFrequency([{date:'2026-10-06'},{date:'2026-10-06'}],{from:'2026-10-05',to:'2026-10-11'}).average,2);
+ assert.equal(weeklyFrequency([],{from:'2026-10-05',to:'2026-10-18'}).average,0);
+ assert.deepEqual(weeklyFrequency(entries,{from:'2026-10-06',to:'2026-10-11'}),{weeks:0,count:0,from:null,to:null,average:null});
+ assert.equal(weeklyFrequency(entries,{from:'2026-10-05',to:'2026-10-05'}).average,null);
+});
+
+test('full-week boundaries remain calendar based across DST, leap days and New Year',()=>{
+ assert.deepEqual(weeklyFrequency([{date:'2026-10-25'},{date:'2026-11-01'}],{from:'2026-10-19',to:'2026-11-01'}),{weeks:2,count:2,from:'2026-10-19',to:'2026-11-01',average:1});
+ assert.deepEqual(weeklyFrequency([{date:'2025-12-28'},{date:'2026-01-04'}],{from:'2025-12-22',to:'2026-01-04'}),{weeks:2,count:2,from:'2025-12-22',to:'2026-01-04',average:1});
+ assert.deepEqual(weeklyFrequency([],{from:'2024-02-01',to:'2024-02-29'}),{weeks:3,count:0,from:'2024-02-05',to:'2024-02-25',average:0});
+ for(const range of [{from:'2026-02-30',to:'2026-03-10'},{from:'2026-10-20',to:'2026-10-01'}])assert.throws(()=>weeklyFrequency([],range));
+ assert.throws(()=>weeklyFrequency([{date:'invalid'}],{from:'2026-10-05',to:'2026-10-18'}));
 });
 test('authenticated persistent CRUD, server conversion, snapshots, conflicts, filtering and deletion',async()=>{
  const sqlite=new DatabaseSync(':memory:');sqlite.exec(readFileSync(new URL('../migrations/0001_earnings.sql',import.meta.url),'utf8'));

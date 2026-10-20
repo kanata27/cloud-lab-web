@@ -68,5 +68,17 @@ export function convert(amounts,snapshot) {
 }
 export function summary(entries) {
   const result=entries.reduce((s,e)=>({czkMinor:s.czkMinor+e.czkMinor,eurMinor:s.eurMinor+e.eurMinor,minutes:s.minutes+e.minutes,count:s.count+1}),{czkMinor:0,eurMinor:0,minutes:0,count:0});
-  return {...result,hourCzk:result.minutes?result.czkMinor/100*60/result.minutes:0,hourEur:result.minutes?result.eurMinor/100*60/result.minutes:0};
+  return {...result,averageMinutes:result.count?result.minutes/result.count:null,hourCzk:result.minutes?result.czkMinor/100*60/result.minutes:0,hourEur:result.minutes?result.eurMinor/100*60/result.minutes:0};
+}
+export function weeklyFrequency(entries,{from,to}) {
+  if(!Array.isArray(entries)||!dateValid(from)||!dateValid(to)||from>to||entries.some(entry=>!entry||!dateValid(entry.date))) {
+    throw new Error('Некорректный период или дата выступления.');
+  }
+  // Calendar dates are saved in Prague time. UTC arithmetic avoids DST shifts.
+  const monday=plusDays(from,(7-weekdayIndex(from))%7);
+  const days=(Date.parse(to)-Date.parse(monday))/86400000+1;
+  const weeks=Math.max(0,Math.floor(days/7));
+  const sunday=weeks?plusDays(monday,weeks*7-1):null;
+  const count=weeks?entries.filter(entry=>entry.date>=monday&&entry.date<=sunday).length:0;
+  return {weeks,count,from:weeks?monday:null,to:sunday,average:weeks?count/weeks:null};
 }

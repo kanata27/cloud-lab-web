@@ -1,10 +1,11 @@
 import {accessFetch,sessionEnded,logout} from './session.js';
-import {DEFAULT_CURRENCIES,NOTE_MAX_LENGTH,WEEKDAYS,weekdayIndex,today,duration,validateEntry,validateNote,convert,summary} from './earnings-model.js';
+import {DEFAULT_CURRENCIES,NOTE_MAX_LENGTH,WEEKDAYS,weekdayIndex,today,duration,validateEntry,validateNote,convert,summary,weeklyFrequency} from './earnings-model.js';
 import {DateFilters} from './date-filter.js';
 import {loadEarningsEntries} from './report-loader.js';
 import {CurrencySummary} from './currency-summary.js';
 const $=id=>document.getElementById(id);
 const number=new Intl.NumberFormat('ru-RU',{maximumFractionDigits:2}),one=new Intl.NumberFormat('ru-RU',{maximumFractionDigits:1});
+const whole=new Intl.NumberFormat('ru-RU',{maximumFractionDigits:0});
 const names=new Intl.DisplayNames(['ru'],{type:'currency'});
 const money=(minor,unit='Kč')=>`${number.format(minor/100)} ${unit}`;
 const hours=m=>`${Math.floor(m/60)} ч ${m%60?`${m%60} мин`:''}`.trim();
@@ -14,6 +15,7 @@ let editingSpotId=null,spotSaving=false;
 let noteTarget=null,noteSaving=false;
 let dateFilters,currencySummary;
 let loadRequest;
+let reportRange={from:today(),to:today()};
 function node(tag,text,className){const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(className)n.className=className;return n;}
 function errorAt(id,message){$(id).textContent=message;$(id).hidden=!message;}
 function closeEntryMenus(){document.querySelectorAll('.entry-menu:popover-open').forEach(menu=>menu.hidePopover());}
@@ -94,15 +96,21 @@ async function load(){
  try{
   const selection={...dateFilters.selection(),spot:$('filter-spot').value};
   const [list,locations]=await Promise.all([loadEarningsEntries(selection,(query,signal)=>api('/entries?'+new URLSearchParams(query),{signal}),request.signal),api('/spots',{signal:request.signal})]);
-  if(serial!==loadSerial)return;entries=list.entries;spots=locations.spots;populateSpots();render();errorAt('message','');$('report').hidden=false;
+  if(serial!==loadSerial)return;entries=list.entries;spots=locations.spots;reportRange={from:selection.from,to:selection.to};populateSpots();render();errorAt('message','');$('report').hidden=false;
  }catch(error){if(serial===loadSerial){errorAt('message',error.message);$('message').classList.add('error');}}
  finally{if(serial===loadSerial)$('show').disabled=false;}
 }
 function render(){
  closeEntryMenus();
  const s=summary(entries);$('total-czk').textContent=money(s.czkMinor);$('total-eur').textContent=`(${money(s.eurMinor,'€')})`;
- $('hour-czk').textContent=one.format(s.hourCzk)+' Kč';$('hour-eur').textContent=`(${one.format(s.hourEur)} €/ч)`;
+ $('hour-czk').textContent=one.format(s.hourCzk)+' Kč/ч';$('hour-eur').textContent=`(${one.format(s.hourEur)} €/ч)`;
  $('total-time').textContent=hours(s.minutes);$('count').textContent=s.count;
+ $('average-duration').textContent=s.averageMinutes===null?'—':hours(Math.round(s.averageMinutes));
+ const weekly=weeklyFrequency(entries,reportRange);
+ $('weekly-count').textContent=weekly.average===null?'—':one.format(weekly.average);
+ $('weekly-count').title=weekly.weeks
+  ? `Выступлений: ${weekly.count}. Полных недель пн–вс: ${weekly.weeks} (${weekly.from.split('-').reverse().join('.')}–${weekly.to.split('-').reverse().join('.')}).`
+  : 'В выбранном периоде нет полной недели с понедельника по воскресенье.';
  $('empty').hidden=entries.length>0;$('entries-table').hidden=!entries.length;
  const body=$('entries-body');body.replaceChildren();
  for(const entry of entries){
@@ -151,7 +159,7 @@ function repositionEntryMenus(){
 function svgNode(tag,attrs={},text){const n=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [k,v]of Object.entries(attrs))n.setAttribute(k,v);if(text!==undefined)n.textContent=text;return n;}
 function chartScale(values){
  const upper=Math.max(1,...values)*1.1,rawStep=upper/4,magnitude=10**Math.floor(Math.log10(rawStep)),fraction=rawStep/magnitude;
- const step=(fraction<1.5?1:fraction<3.5?2:fraction<7.5?5:10)*magnitude;
+ const step=Math.max(1,(fraction<1.5?1:fraction<3.5?2:fraction<7.5?5:10)*magnitude);
  const intervals=Math.ceil(upper/step),max=intervals*step;
  return {max,ticks:Array.from({length:intervals+1},(_,i)=>Number((i*step).toPrecision(12)))};
 }
@@ -162,14 +170,14 @@ function renderCharts(){
  if(!data.length)host.append(node('p','График появится после добавления выступлений.','muted'));
  else{
   const values=data.map(d=>chartMode==='sum'?d.czkMinor/100:d.hourCzk),{max,ticks}=chartScale(values);
-  const width=Math.max(280,host.clientWidth),height=245,left=Math.max(45,number.format(max).length*7+16),right=12,top=30,bottom=35,plot=width-left-right;
+  const width=Math.max(280,host.clientWidth),height=245,left=Math.max(45,whole.format(max).length*7+16),right=12,top=30,bottom=35,plot=width-left-right;
   const svg=svgNode('svg',{viewBox:`0 0 ${width} ${height}`,role:'img','aria-label':chartMode==='sum'?'Заработок по дням в кронах':'Заработок за час по дням в кронах'});
-  for(const tick of ticks){const y=top+(height-top-bottom)*(1-tick/max);svg.append(svgNode('line',{x1:left,x2:width-right,y1:y,y2:y,class:'chart-grid'}),svgNode('text',{x:left-10,y:y+4,'text-anchor':'end',class:'chart-label chart-tick'},number.format(tick)));}
+  for(const tick of ticks){const y=top+(height-top-bottom)*(1-tick/max);svg.append(svgNode('line',{x1:left,x2:width-right,y1:y,y2:y,class:'chart-grid'}),svgNode('text',{x:left-10,y:y+4,'text-anchor':'end',class:'chart-label chart-tick'},whole.format(tick)));}
   const step=plot/data.length,bar=Math.max(.8,Math.min(46,step*.6)),labelStep=Math.max(1,Math.ceil(data.length/Math.max(2,Math.floor(plot/90))));
   data.forEach((d,i)=>{const value=values[i],h=value/max*(height-top-bottom),x=left+i*step+(step-bar)/2,y=height-bottom-h;
    const rect=svgNode('rect',{x,y,width:bar,height:Math.max(h,1),rx:Math.min(3,bar/2),class:'chart-bar'});
    rect.append(svgNode('title',{},`${Math.floor(d.minutes/60)}ч ${d.minutes%60}м | ${d.spotNames.join(' · ')||'Точка'}`));svg.append(rect);
-   if(data.length<=7)svg.append(svgNode('text',{x:x+bar/2,y:y-7,'text-anchor':'middle',class:'chart-value'},one.format(value)));
+   if(data.length<=7)svg.append(svgNode('text',{x:x+bar/2,y:y-7,'text-anchor':'middle',class:'chart-value'},whole.format(value)));
    if(i%labelStep===0)svg.append(svgNode('text',{x:x+bar/2,y:height-10,'text-anchor':'middle',class:'chart-label'},shortDate(d.date)));
   });svg.append(svgNode('text',{x:left-10,y:14,'text-anchor':'end',class:'chart-label chart-unit'},chartMode==='sum'?'Kč':'Kč/ч'));host.append(svg);
  }
