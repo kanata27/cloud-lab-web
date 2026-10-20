@@ -2,7 +2,47 @@ import {test, expect} from '../support/browser.mjs';
 import {earning} from '../support/insights-fixtures.mjs';
 import {convert} from '../../statistics-panel/earnings-model.js';
 
-test('performance duration follows entries, period and spot; the two centered strips preserve chart precision', async ({page}) => {
+async function expectSummaryGrid(page, width) {
+  await page.setViewportSize({width, height: 1000});
+  const layout = await page.evaluate(() => {
+    const box = element => {
+      const rect = element.getBoundingClientRect();
+      return {left: rect.left, right: rect.right, top: rect.top, width: rect.width};
+    };
+    const table = document.querySelector('.summary-table'), panel = document.querySelector('.earnings-metrics').getBoundingClientRect();
+    return {
+      pageFits: document.documentElement.scrollWidth <= innerWidth,
+      panels: ['#filters', '.earnings-metrics', '.daily-panel'].map(selector => box(document.querySelector(selector))),
+      rows: [...table.rows].map(row => [...row.cells].map(box)),
+      valueStarts: [...table.tBodies[0].rows].map(row => [...row.querySelectorAll('.summary-value')].map(box)),
+      overflow: [...table.querySelectorAll('.summary-value,.summary-equivalent,.summary-note')].flatMap(element => {
+        const rect = element.getBoundingClientRect(), parent = element.closest('td').getBoundingClientRect();
+        return rect.left >= parent.left && rect.right <= parent.right && rect.left >= panel.left && rect.right <= panel.right
+          && element.scrollWidth <= element.clientWidth + 1
+          ? [] : [{text: element.textContent, scroll: element.scrollWidth, available: element.clientWidth}];
+      }),
+    };
+  });
+  expect(layout.pageFits, `page at ${width}px`).toBe(true);
+  expect(layout.overflow, `summary content at ${width}px`).toEqual([]);
+  for (const panel of layout.panels.slice(1)) {
+    expect(panel.left).toBeCloseTo(layout.panels[0].left, 1);
+    expect(panel.right).toBeCloseTo(layout.panels[0].right, 1);
+  }
+  if (width > 760) {
+    for (const row of layout.rows.slice(1)) {
+      for (let column = 0; column < 4; column++) {
+        expect(row[column].left).toBeCloseTo(layout.rows[0][column].left, 1);
+        expect(row[column].width).toBeCloseTo(layout.rows[0][column].width, 1);
+      }
+    }
+    for (const row of layout.valueStarts) {
+      for (const value of row.slice(1)) expect(value.top).toBeCloseTo(row[0].top, 1);
+    }
+  }
+}
+
+test('performance duration follows entries, period and spot; the summary table aligns with filters and chart', async ({page}) => {
   await page.clock.setFixedTime(new Date('2026-10-19T12:00:00Z'));
   const entries = [
     earning('2026-10-01', 'morning', '113.6', '10:00', '12:00'),
@@ -31,35 +71,17 @@ test('performance duration follows entries, period and spot; the two centered st
   await expect(page.locator('#total-time')).toHaveText('6 ч 21 мин');
   await expect(page.locator('#total-czk')).toHaveText('409,5 Kč');
   await expect(page.locator('#daily-chart .chart-value')).toHaveText(['359', '51']);
-  await expect(page.locator('#average-duration').locator('..')).toHaveText('Длительность выступления2 ч 7 мин');
-  await expect(page.locator('.metric-count h2')).toHaveText('Всего');
-  const layout = await page.evaluate(() => {
-    const boxes = [...document.querySelectorAll('.summary-strip')].map(element => {
-      const box = element.getBoundingClientRect(); return {left: box.left, width: box.width};
-    });
-    const filter = document.querySelector('#filters').getBoundingClientRect();
-    const count = document.querySelector('#count').getBoundingClientRect(), group = document.querySelector('.metric-count').getBoundingClientRect();
-    return {boxes, filter: {left: filter.left, width: filter.width}, countCenter: count.left + count.width / 2, groupCenter: group.left + group.width / 2};
-  });
-  expect(layout.boxes).toHaveLength(2);
-  expect(layout.boxes[0]).toEqual(layout.boxes[1]);
-  expect(layout.boxes[0].width).toBeLessThan(layout.filter.width * .9);
-  expect(layout.boxes[0].left + layout.boxes[0].width / 2).toBeCloseTo(layout.filter.left + layout.filter.width / 2, 1);
-  expect(Math.abs(layout.countCenter - layout.groupCenter)).toBeLessThanOrEqual(1);
+  await expect(page.locator('.summary-table thead th')).toHaveText(['Показатель', 'Заработок', 'Время', 'Выступления']);
+  await expect(page.locator('.summary-table tbody th')).toHaveText(['Всего', 'В среднем']);
+  await expect(page.locator('.summary-table tbody td')).toHaveCount(6);
+  await expect(page.locator('#average-duration').locator('..')).toContainText('на выступление');
+  await expect(page.locator('#weekly-count').locator('..')).toContainText('в неделю');
+  await expect(page.locator('#hour-czk')).toHaveText('64,5 Kč/ч');
+  await expect(page.locator('#hour-eur')).toHaveText('(2,6 €/ч)');
+  await expectSummaryGrid(page, 1440);
   await page.locator('.earnings-metrics').screenshot({path: 'test-results/earnings-daily-summary-desktop.png'});
-  for (const width of [1280, 1200, 1199, 1024, 780, 760, 600, 390, 320]) {
-    await page.setViewportSize({width, height: 1000});
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-    const overflow = await page.locator('.earnings-metrics .metric').evaluateAll(cards => cards.flatMap(card => {
-      const parent = card.getBoundingClientRect();
-      return [...card.children].flatMap(child => {
-        const rect = child.getBoundingClientRect();
-        return rect.left >= parent.left && rect.right <= parent.right && child.scrollWidth <= child.clientWidth + 1
-          ? [] : [{text: child.textContent, scroll: child.scrollWidth, available: child.clientWidth}];
-      });
-    }));
-    expect(overflow, `metric content at ${width}px`).toEqual([]);
-  }
+  await page.screenshot({path: 'test-results/earnings-summary-context.png'});
+  for (const width of [1920, 1536, 1280, 1200, 1199, 1100, 1024, 900, 780, 761, 760, 600, 390, 375, 320]) await expectSummaryGrid(page, width);
   await page.locator('.earnings-metrics').screenshot({path: 'test-results/earnings-daily-summary-mobile.png'});
   await page.setViewportSize({width: 1440, height: 1000});
   await page.locator('#filter-spot').selectOption('spot-a'); await page.locator('#show').click();
@@ -81,6 +103,26 @@ test('performance duration follows entries, period and spot; the two centered st
   await expect(page.locator('#empty')).toBeVisible();
   await expect(page.locator('#average-duration')).toHaveText('—');
   await expect(page.locator('#count')).toHaveText('0');
+});
+
+test('summary keeps long totals, units and all six readings visible on narrow screens and in dark mode', async ({page}) => {
+  await page.clock.setFixedTime(new Date('2026-10-20T07:00:00Z'));
+  const entries = ['2026-10-03','2026-10-04','2026-10-09','2026-10-14','2026-10-18','2026-10-19']
+    .map(date => earning(date, date, '999999.99', '00:00', '23:59'));
+  await page.route('**/earnings-api/**', route => route.fulfill({json:
+    route.request().url().includes('/spots') ? {spots: [{id: 'spot-a', name: 'Набережная'}]} : {entries},
+  }));
+  await page.goto('/stat-panel/earnings');
+  await expect(page.locator('#count')).toHaveText('6');
+  await expect(page.locator('#total-czk')).toHaveText('5 999 999,94 Kč');
+  await expect(page.locator('#total-time')).toHaveText('143 ч 54 мин');
+  await expect(page.locator('.summary-table .summary-value')).toHaveCount(6);
+  for (const width of [1440, 1024, 780, 761, 760, 600, 390, 320]) await expectSummaryGrid(page, width);
+  await page.emulateMedia({colorScheme: 'dark'});
+  await expectSummaryGrid(page, 1440);
+  await page.locator('.earnings-metrics').screenshot({path: 'test-results/earnings-summary-dark.png'});
+  await expectSummaryGrid(page, 320);
+  await page.locator('.earnings-metrics').screenshot({path: 'test-results/earnings-summary-long-mobile.png'});
 });
 
 test('weekly frequency excludes partial weeks, counts empty weeks and follows the applied range while editing notes', async ({page}) => {

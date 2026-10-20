@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow,noarchive"><meta name="color-scheme" content="light dark">
-<title>Заработки</title><link rel="icon" href="/assets/favicon.svg"><link rel="stylesheet" href="/stat-panel/earnings.css?v=20261020-1"><link rel="stylesheet" href="/stat-panel/date-filter.css">
-<script src="/site-config.js" defer></script><script type="module" src="/stat-panel/earnings.js?v=20261020-1"></script>
+<title>Заработки</title><link rel="icon" href="/assets/favicon.svg"><link rel="stylesheet" href="/stat-panel/earnings.css?v=20261020-2"><link rel="stylesheet" href="/stat-panel/date-filter.css">
+<script src="/site-config.js" defer></script><script type="module" src="/stat-panel/earnings.js?v=20261020-2"></script>
   <link rel="preload" href="/stat-panel/fonts/golos-text-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/stat-panel/fonts/golos-text-cyrillic-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/stat-panel/panel-typography.css?v=20261018-4">
@@ -47,19 +47,32 @@
       </form>
 <div id="message" role="status" class="message" hidden></div>
 <section id="report" aria-label="Сводка заработков" hidden>
-<div class="metrics earnings-metrics">
-  <section class="panel summary-strip totals-strip" aria-label="Итоги периода">
-    <article class="metric metric-total"><h2>Всего</h2><div class="metric-amounts"><p id="total-czk">—</p><span id="total-eur" class="summary-equivalent">—</span></div></article>
-    <article class="metric metric-time"><h2>Время выступлений</h2><p id="total-time">—</p></article>
-    <article class="metric metric-count" aria-label="Всего выступлений"><h2>Всего</h2><p id="count">—</p></article>
-  </section>
-  <section class="panel summary-strip averages-strip" aria-labelledby="averages-title">
-    <h2 id="averages-title" class="averages-title">В среднем</h2>
-    <article class="metric"><h3>За час</h3><div class="metric-amounts"><p id="hour-czk">—</p><span id="hour-eur" class="summary-equivalent">—</span></div></article>
-    <article class="metric"><h3>Длительность выступления</h3><p id="average-duration">—</p></article>
-    <article class="metric"><h3>Выступлений в неделю</h3><p id="weekly-count">—</p></article>
-  </section>
-</div>
+<section class="panel metrics earnings-metrics" aria-label="Итоги и средние за период">
+  <table class="summary-table" role="table">
+    <caption class="sr-only">Заработок, время и выступления: итоги и средние за выбранный период</caption>
+    <colgroup><col class="summary-label-column"><col class="summary-money-column"><col class="summary-time-column"><col class="summary-count-column"></colgroup>
+    <thead role="rowgroup"><tr role="row">
+      <th scope="col" role="columnheader"><span class="sr-only">Показатель</span></th>
+      <th scope="col" role="columnheader" id="summary-money-heading">Заработок</th>
+      <th scope="col" role="columnheader" id="summary-time-heading">Время</th>
+      <th scope="col" role="columnheader" id="summary-count-heading">Выступления</th>
+    </tr></thead>
+    <tbody role="rowgroup">
+      <tr role="row" class="summary-total-row">
+        <th scope="row" role="rowheader" id="summary-total-heading">Всего</th>
+        <td role="cell" headers="summary-total-heading summary-money-heading"><span class="summary-mobile-label" aria-hidden="true">Заработок</span><div class="summary-values"><span id="total-czk" class="summary-value">—</span><span id="total-eur" class="summary-equivalent">—</span></div></td>
+        <td role="cell" headers="summary-total-heading summary-time-heading"><span class="summary-mobile-label" aria-hidden="true">Время</span><div class="summary-values"><span id="total-time" class="summary-value">—</span></div></td>
+        <td role="cell" headers="summary-total-heading summary-count-heading"><span class="summary-mobile-label" aria-hidden="true">Выступления</span><div class="summary-values"><span id="count" class="summary-value">—</span></div></td>
+      </tr>
+      <tr role="row" class="summary-average-row">
+        <th scope="row" role="rowheader" id="summary-average-heading">В среднем</th>
+        <td role="cell" headers="summary-average-heading summary-money-heading"><span class="summary-mobile-label" aria-hidden="true">За час</span><div class="summary-values"><span id="hour-czk" class="summary-value">—</span><span id="hour-eur" class="summary-equivalent">—</span></div></td>
+        <td role="cell" headers="summary-average-heading summary-time-heading"><span class="summary-mobile-label" aria-hidden="true">Длительность</span><div class="summary-values"><span id="average-duration" class="summary-value">—</span><span class="summary-note">на выступление</span></div></td>
+        <td role="cell" headers="summary-average-heading summary-count-heading"><span class="summary-mobile-label" aria-hidden="true">Выступления</span><div class="summary-values"><span id="weekly-count" class="summary-value">—</span><span class="summary-note">в неделю</span></div></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
 <div class="charts"><section class="panel daily-panel"><div class="section-heading"><h2>Заработок по дням</h2><div class="switch" role="group" aria-label="Показатель графика"><button type="button" data-chart="sum" aria-pressed="true">Сумма</button><button type="button" data-chart="hour" aria-pressed="false">За час</button></div></div><div id="daily-chart" class="daily-chart"></div></section><section class="panel spots-panel" id="spots-panel" hidden><h2>По точкам · за час</h2><div id="spots-chart"></div></section></div>
 <section id="foreign-currencies" class="panel foreign-currencies" aria-labelledby="currency-summary-title" hidden>
   <div class="currency-summary-heading"><h2 id="currency-summary-title">Валюта к обмену</h2><p id="currency-quote-date" class="currency-quote-date"></p></div>

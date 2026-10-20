@@ -103,7 +103,7 @@ async function load(){
 function render(){
  closeEntryMenus();
  const s=summary(entries);$('total-czk').textContent=money(s.czkMinor);$('total-eur').textContent=`(${money(s.eurMinor,'€')})`;
- $('hour-czk').textContent=one.format(s.hourCzk)+' Kč';$('hour-eur').textContent=`(${one.format(s.hourEur)} €)`;
+ $('hour-czk').textContent=one.format(s.hourCzk)+' Kč/ч';$('hour-eur').textContent=`(${one.format(s.hourEur)} €/ч)`;
  $('total-time').textContent=hours(s.minutes);$('count').textContent=s.count;
  $('average-duration').textContent=s.averageMinutes===null?'—':hours(Math.round(s.averageMinutes));
  const weekly=weeklyFrequency(entries,reportRange);

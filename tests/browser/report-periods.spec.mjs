@@ -41,8 +41,9 @@ for (const [path, kind] of [['/stat-panel/earnings', 'earnings'], ['/stat-panel/
       await expect(page.locator('#total-czk')).toHaveText('990 Kč');
       expect(entryCalls.filter(query => query.from === '2024-01-01').map(query => query.cursor || '')).toEqual(['', '1', '2']);
       await page.setViewportSize({width: 1440, height: 1000});
-      const widths = await page.locator('.totals-strip .metric').evaluateAll(cards => cards.map(card => card.getBoundingClientRect().width));
-      expect(widths[2]).toBeLessThanOrEqual(128); expect(widths[0]).toBeGreaterThan(widths[2] * 2);
+      const widths = await page.locator('.summary-total-row td').evaluateAll(cells => cells.map(cell => cell.getBoundingClientRect().width));
+      expect(widths).toHaveLength(3);
+      expect(widths[2]).toBeLessThan(widths[0]); expect(widths[2]).toBeLessThan(widths[1]);
     } else {
       const days = (Date.parse('2026-10-18') - Date.parse('2024-01-01')) / 86400000 + 1;
       await expect(page.locator('#views-value')).toHaveText(new Intl.NumberFormat('ru-RU').format(days * 8));
