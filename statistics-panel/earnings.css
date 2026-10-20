@@ -79,9 +79,49 @@
  .note-dialog .drawer-heading h2 { font-size:20px; }
 }
 
-.earnings-metrics { grid-template-columns:repeat(3,minmax(0,1fr)) 144px; }
-.earnings-metrics .metric-count { padding-inline:18px; }
-@media(max-width:760px) { .earnings-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+.earnings-metrics { grid-template-columns:minmax(0,1fr); gap:14px; width:84%; max-width:1120px; margin:22px auto; }
+.summary-strip { display:grid; align-items:center; min-width:0; padding:22px 24px; }
+.totals-strip { grid-template-columns:minmax(0,1fr) minmax(0,1fr) 96px; column-gap:24px; min-height:132px; }
+.earnings-metrics .metric { min-width:0; }
+body.panel-page .earnings-metrics .metric h2 { min-height:0; margin:0 0 10px; font-size:14px; font-weight:400; }
+body.panel-page .earnings-metrics .metric p { margin:0; font-size:clamp(28px,2.6vw,38px); overflow-wrap:anywhere; }
+.totals-strip .metric + .metric { border-left:1px solid var(--line); padding-left:24px; }
+.metric-amounts { display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 14px; min-width:0; }
+.earnings-metrics .summary-equivalent { min-width:0; color:var(--muted); font-size:16px; line-height:1.5; overflow-wrap:anywhere; }
+.totals-strip .metric.metric-count { position:relative; display:grid; place-items:center; align-self:stretch; padding-left:0; text-align:center; }
+body.panel-page .totals-strip .metric-count h2 { position:absolute; inset:0 0 auto; margin:0; }
+.averages-strip { grid-template-columns:150px minmax(0,1fr) minmax(0,1.2fr) minmax(0,1fr); column-gap:20px; min-height:104px; }
+body.panel-page .averages-strip .averages-title { margin:0; font-size:18px; font-weight:500; }
+.averages-strip .metric { display:flex; flex-direction:column; justify-content:center; align-self:stretch; border-left:1px solid var(--line); padding-left:20px; }
+body.panel-page .averages-strip .metric h3 { margin:0 0 8px; color:var(--muted); font-size:13px; font-weight:400; line-height:1.5; }
+body.panel-page .averages-strip .metric p { font-size:clamp(22px,2vw,28px); }
+@media(max-width:1199px) {
+ .earnings-metrics { width:100%; }
+ .averages-strip { grid-template-columns:130px minmax(0,1fr) minmax(0,1.2fr) minmax(0,1fr); column-gap:14px; }
+ .averages-strip .metric { padding-left:14px; }
+ body.panel-page .averages-strip .metric h3 { min-height:39px; }
+}
+@media(max-width:760px) {
+ .summary-strip { padding:20px; }
+ .totals-strip { grid-template-columns:minmax(0,1fr) 72px; column-gap:18px; min-height:0; }
+ .totals-strip .metric-total { grid-column:1/-1; border-bottom:1px solid var(--line); margin-bottom:16px; padding-bottom:16px; }
+ .totals-strip .metric.metric-time { border-left:0; padding-left:0; }
+ .totals-strip .metric.metric-count { display:flex; flex-direction:column; justify-content:center; }
+ body.panel-page .totals-strip .metric-count h2 { position:static; margin-bottom:8px; font-size:12px; }
+ body.panel-page .totals-strip .metric p { font-size:30px; }
+ .averages-strip { grid-template-columns:minmax(0,1fr); gap:0; min-height:0; }
+ body.panel-page .averages-strip .averages-title { margin-bottom:16px; }
+ .averages-strip .metric { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); align-items:center; column-gap:16px; border-left:0; border-top:1px solid var(--line); padding:16px 0; }
+ .averages-strip .metric:last-child { padding-bottom:0; }
+ body.panel-page .averages-strip .metric h3 { min-height:0; margin:0; }
+ body.panel-page .averages-strip .metric p { font-size:22px; text-align:right; }
+ .averages-strip .metric-amounts { justify-content:flex-end; gap:4px 8px; }
+ .earnings-metrics .summary-equivalent { font-size:14px; }
+}
+@media(max-width:380px) {
+ .summary-strip { padding:17px; }
+ body.panel-page .totals-strip .metric p { font-size:26px; }
+}
 
 .foreign-currencies { margin-bottom:20px; min-width:0; }
 .currency-summary-heading { display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:8px 24px; margin-bottom:24px; }

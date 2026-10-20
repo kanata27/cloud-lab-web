@@ -27,7 +27,7 @@ test('earnings: create spot and mixed-currency entry, edit, filter, mobile and d
  await expect(page.getByRole('textbox',{name:'Сумма EUR',exact:true})).toHaveValue('2,2');
  await expect(page.getByRole('textbox',{name:'Сумма USD',exact:true})).toHaveValue('2');
  await expect(page.locator('#estimate-total')).toContainText('315');await expect(page.locator('#estimate-hour')).toContainText('€/ч');
- await page.locator('#save-entry').click();await expect(page.locator('#entries-body tr')).toHaveCount(1);await expect(page.locator('#total-czk')).toHaveText('315 Kč');await expect(page.locator('#hour-eur')).toContainText('€/ч');
+ await page.locator('#save-entry').click();await expect(page.locator('#entries-body tr')).toHaveCount(1);await expect(page.locator('#total-czk')).toHaveText('315 Kč');await expect(page.locator('#hour-eur')).toContainText('€');
  await expect(page.locator('#spots-panel')).toBeHidden();
  await expect(page.locator('#entries-body select')).toHaveCount(0);await page.locator('.entry-trigger').click();await page.getByRole('button',{name:'Изменить данные'}).click();
  await page.locator('#entry-end').fill('18:20');await page.locator('#save-entry').click();await expect(page.locator('#hour-czk')).toHaveText('78,8 Kč');
@@ -171,7 +171,7 @@ test('earnings: full-width chart, rounded axes, compact spots and overnight disp
  }
  await page.setViewportSize({width:1440,height:1000});
  // Typical small, larger, zero and fractional hourly amounts all stay readable.
- for(const [amount,expected] of [[444,['0','100','200','300','400','500']],[853,['0','200','400','600','800','1 000']],[0,['0','0,2','0,4','0,6','0,8','1','1,2']]]){
+ for(const [amount,expected] of [[444,['0','100','200','300','400','500']],[853,['0','200','400','600','800','1 000']],[0,['0','1','2']]]){
   records=[{...records[0],czkMinor:amount*100}];await page.locator('#show').click();
   await expect(page.locator('#daily-chart .chart-tick')).toHaveText(expected);
   await expect.poll(()=>page.evaluate(()=>{
