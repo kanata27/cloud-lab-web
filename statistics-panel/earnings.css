@@ -91,7 +91,6 @@
 .summary-table tbody th { vertical-align:middle; color:var(--panel-type-ink); font-size:16px; font-weight:500; }
 .summary-table tbody td { vertical-align:top; }
 .summary-table tbody tr + tr > * { border-top:1px solid var(--line); }
-.summary-average-row { background:color-mix(in srgb,var(--panel) 70%,var(--soft)); }
 .summary-values { display:flex; flex-wrap:wrap; align-items:baseline; gap:6px 14px; min-width:0; }
 .summary-value { display:block; min-width:0; max-width:100%; font-size:clamp(26px,2.6vw,36px); font-weight:400; line-height:1.2; letter-spacing:-.04em; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
 .summary-equivalent,.summary-note { min-width:0; max-width:100%; color:var(--panel-type-muted); font-size:14px; line-height:1.5; overflow-wrap:anywhere; }
