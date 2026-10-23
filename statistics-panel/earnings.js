@@ -16,7 +16,7 @@ let entries=[],spots=[],editing=null,entryId=null,snapshot=null,rateSerial=0,loa
 let editingSpotId=null,spotSaving=false;
 let noteTarget=null,noteSaving=false;
 let dateFilters,currencySummary,annualCalendar;
-let reportSpot='',weekdaySpot='';
+let reportSpot='',weekdaySpot='',calendarDirty=true;
 let loadRequest;
 let reportRange={from:today(),to:today()};
 function node(tag,text,className){const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(className)n.className=className;return n;}
@@ -109,7 +109,7 @@ async function load(){
     })) throw new Error('Не удалось прочитать точки выступлений.');
     if(list.entries.some(entry=>!spotIds.has(entry.spotId)))throw new Error('Точка выступления не найдена. Обнови отчёт.');
   entries=list.entries;spots=locations.spots;reportRange={from:selection.from,to:selection.to};reportSpot=selection.spot;populateSpots();render();errorAt('message','');$('report').hidden=false;
-  annualCalendar??=new EarningsCalendar({read:(year,signal)=>api('/calendar?'+new URLSearchParams({year}),{signal})});
+  renderDetails();
  }catch(error){if(serial===loadSerial){errorAt('message',error.message);$('message').classList.add('error');}}
  finally{if(serial===loadSerial)$('show').disabled=false;}
 }
@@ -191,9 +191,8 @@ function render(){
   trigger.addEventListener('click',event=>{event.preventDefault();if(menu.matches(':popover-open'))menu.hidePopover();else{menu.showPopover({source:trigger});positionEntryMenu(trigger,menu);edit.focus({preventScroll:true});}});
   menu.append(edit,remove);controls.append(trigger,menu);actions.append(controls);tr.append(actions);body.append(tr);
  }
- renderCharts();
- currencySummary.update(entries);
  populateWeekdaySpots();drawWeekdays();
+ renderDetails();
 }
 function positionEntryMenu(trigger,menu){
  const anchor=trigger.getBoundingClientRect(),box=menu.getBoundingClientRect(),edge=8,gap=6;
@@ -215,6 +214,7 @@ function chartScale(values){
  return {max,ticks:Array.from({length:intervals+1},(_,i)=>Number((i*step).toPrecision(12)))};
 }
 function renderCharts(){
+ if(!$('earnings-details').open)return;
  const host=$('daily-chart');host.replaceChildren();const groups=new Map();
  entries.forEach(e=>groups.set(e.date,[...(groups.get(e.date)||[]),e]));
  const data=[...groups].sort(([a],[b])=>a.localeCompare(b)).map(([date,items])=>({date,...summary(items),spotNames:[...new Set(items.map(e=>spots.find(s=>s.id===e.spotId)?.name).filter(Boolean))]}));
@@ -363,7 +363,25 @@ $('spot-form').addEventListener('submit',async event=>{
 $('cancel-delete').addEventListener('click',()=>$('delete-dialog').close());
 $('confirm-delete').addEventListener('click',async()=>{$('confirm-delete').disabled=true;try{await api(`/entries/${deleteTarget.id}`,{method:'DELETE',body:JSON.stringify({version:deleteTarget.version})});$('delete-dialog').close();await load();refreshCalendar();}catch(error){errorAt('delete-error',error.message);}finally{$('confirm-delete').disabled=false;}});
 document.querySelectorAll('[data-chart]').forEach(b=>b.addEventListener('click',()=>{chartMode=b.dataset.chart;document.querySelectorAll('[data-chart]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));renderCharts();}));
-function refreshCalendar(){if(!$('app').hidden)void annualCalendar?.load();}
+function ensureCalendar(){
+ if(!annualCalendar){
+  calendarDirty=false;
+  annualCalendar=new EarningsCalendar({read:(year,signal)=>api('/calendar?'+new URLSearchParams({year}),{signal})});
+ }else if(calendarDirty){calendarDirty=false;void annualCalendar.load();}
+}
+function renderDetails(){
+ if($('app').hidden||$('report').hidden||!$('earnings-details').open)return;
+ renderCharts();currencySummary.update(entries);ensureCalendar();
+}
+function refreshCalendar(){
+ calendarDirty=true;
+ if(!$('app').hidden&&!$('report').hidden&&$('earnings-details').open)ensureCalendar();
+}
+$('earnings-details').addEventListener('toggle',()=>{
+ const open=$('earnings-details').open;
+ $('earnings-details-label').textContent=open?'Скрыть подробную статистику':'Показать подробную статистику';
+ if(open)renderDetails();else{annualCalendar?.hideTooltip();currencySummary?.reset();}
+});
 $('weekday-spot').addEventListener('change',()=>{weekdaySpot=$('weekday-spot').value;drawWeekdays();});
 $('logout').addEventListener('click',logout);
 window.addEventListener('resize',closeEntryMenus);document.addEventListener('scroll',repositionEntryMenus,true);

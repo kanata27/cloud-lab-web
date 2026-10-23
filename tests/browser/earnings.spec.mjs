@@ -1,4 +1,4 @@
-import {test,expect} from '../support/browser.mjs';
+import {test,expect,openEarningsDetails} from '../support/browser.mjs';
 import {validateEntry,convert} from '../../statistics-panel/earnings-model.js';
 test('earnings: create spot and mixed-currency entry, edit, filter, mobile and delete',async({page})=>{
  await page.clock.setFixedTime(new Date('2026-09-13T20:00:00Z'));
@@ -14,7 +14,7 @@ test('earnings: create spot and mixed-currency entry, edit, filter, mobile and d
   else{const model=validateEntry(data);result={...model,...convert(model.amounts,snapshot),snapshot:{...snapshot,requestedDate:data.date},id:data.id,version:(data.version||0)+1};entries=[result];}
   await route.fulfill({json:result});
  });
- await page.goto('/stat-panel/earnings');await expect(page.locator('#empty')).toBeVisible();
+ await page.goto('/stat-panel/earnings');await openEarningsDetails(page);await expect(page.locator('#empty')).toBeVisible();
  await expect(page.locator('#spots-panel')).toBeHidden();
  await page.locator('#add-entry').click();await expect(page.locator('#entry-spot')).toBeDisabled();await page.locator('#entry-start').fill('14:20');await page.locator('#entry-end').fill('17:12');
  await page.locator('#new-spot').click();await page.locator('#spot-name').fill('Набережная');await page.locator('#save-spot').click();
@@ -54,7 +54,7 @@ test('earnings: real spots only and hover duration and names for one or several 
   const url=new URL(route.request().url());
   await route.fulfill({json:url.pathname.endsWith('/spots')?{spots}:url.pathname.endsWith('/rates')?{...snapshot,requestedDate:url.searchParams.get('date')}:{entries:entries.filter(e=>!url.searchParams.get('spot')||e.spotId===url.searchParams.get('spot'))}});
  });
- await page.goto('/stat-panel/earnings');await expect(page.locator('#entries-body tr')).toHaveCount(4);
+ await page.goto('/stat-panel/earnings');await openEarningsDetails(page);await expect(page.locator('#entries-body tr')).toHaveCount(4);
  await expect(page.locator('#spots-panel')).toBeVisible();
  await expect(page.locator('#daily-chart .chart-bar title')).toHaveText(['8ч 36м | Malostranské schody · Anděl','2ч 52м | Anděl']);
  await page.getByRole('button',{name:'За час',exact:true}).click();
@@ -105,7 +105,7 @@ test('earnings: pencil renames a spot, handles conflicts and preserves the unsav
   expect(req.method()).toBe('GET');
   await route.fulfill({json:url.pathname.endsWith('/spots')?{spots}:url.pathname.endsWith('/rates')?{...snapshot,requestedDate:url.searchParams.get('date')}:{entries:[entry]}});
  });
- await page.goto('/stat-panel/earnings');await expect(page.locator('#entries-body')).toContainText('Malostranké schody');
+ await page.goto('/stat-panel/earnings');await openEarningsDetails(page);await expect(page.locator('#entries-body')).toContainText('Malostranké schody');
  await page.locator('#add-entry').click();
  await page.locator('#entry-start').fill('14:20');await page.locator('#entry-end').fill('17:12');
  await page.getByRole('textbox',{name:'Сумма CZK',exact:true}).fill('220');
@@ -157,7 +157,7 @@ test('earnings: full-width chart, rounded axes, compact spots and overnight disp
   const url=new URL(route.request().url());
   await route.fulfill({json:url.pathname.endsWith('/spots')?{spots:[spot,{id:'spot-b',name:'Anděl'}]}:{entries:records}});
  });
- await page.goto('/stat-panel/earnings');await expect(page.locator('#entries-body tr')).toHaveCount(1);
+ await page.goto('/stat-panel/earnings');await openEarningsDetails(page);await expect(page.locator('#entries-body tr')).toHaveCount(1);
  await expect(page.getByRole('heading',{name:'Заработки',exact:true})).toHaveCount(0);
  await expect(page.locator('#entries-body')).not.toContainText('+1 день');
  await expect(page.locator('#entries-body td').nth(1)).toHaveText('Суббота');
@@ -199,7 +199,7 @@ test('earnings: spots comparison hides for zero or one place and updates after a
   else result={entries:[]};
   await route.fulfill({json:result});
  });
- await page.goto('/stat-panel/earnings');await expect(page.locator('#report')).toBeVisible();
+ await page.goto('/stat-panel/earnings');await openEarningsDetails(page);await expect(page.locator('#report')).toBeVisible();
  await expect(page.locator('#spots-panel')).toBeHidden();
  await page.locator('#add-entry').click();
  for(const [name,visible] of [['Набережная',false],['Anděl',true]]){
@@ -226,7 +226,7 @@ test('earnings: action stays accessible while scrolling, beside desktop content 
   const url=new URL(route.request().url());
   await route.fulfill({json:url.pathname.endsWith('/spots')?{spots:[{id:'spot-a',name:'Malostranské schody'}]}:url.pathname.endsWith('/rates')?{requestedDate:url.searchParams.get('date'),rates:{CZK:1,EUR:25,USD:20}}:{entries}});
  });
- await page.goto('/stat-panel/earnings');await expect(page.locator('#entries-body tr')).toHaveCount(entries.length);
+ await page.goto('/stat-panel/earnings');await openEarningsDetails(page);await expect(page.locator('#entries-body tr')).toHaveCount(entries.length);
  await page.evaluate(()=>document.fonts.ready);
  for(const width of [320,390,414,700,760,999,1000,1024,1366,1440,1600,1920,2560]){
   await page.setViewportSize({width,height:900});

@@ -1,4 +1,4 @@
-import {test, expect} from '../support/browser.mjs';
+import {test, expect, openEarningsDetails} from '../support/browser.mjs';
 import {earning} from '../support/insights-fixtures.mjs';
 import {convert} from '../../statistics-panel/earnings-model.js';
 
@@ -49,7 +49,7 @@ test.beforeEach(async ({page}) => {
 test('original foreign amounts respect the period and spot, show the latest actual rate date, and keep historical totals', async ({page}) => {
   const state = await mockAPIs(page, [record('2026-10-18', 'yesterday', {CZK: 100, EUR: 3}),
     record('2026-10-17', 'previous', {CZK: 50, EUR: 2.5}, 'spot-b'), record('2026-08-01', 'outside', {EUR: 99})]);
-  await page.goto('/stat-panel/earnings');
+  await page.goto('/stat-panel/earnings');await openEarningsDetails(page);
   await expect(page.locator('#foreign-currencies')).toBeVisible();
   await expect(page.locator('.foreign-currency')).toHaveCount(1);
   await expect(page.locator('[data-currency="EUR"] .currency-original')).toHaveText('5,50 €');
@@ -81,7 +81,7 @@ test('original foreign amounts respect the period and spot, show the latest actu
 test('seven currencies collapse to three, expand as 3 + 3 + 1, and fit mobile and dark mode', async ({page}) => {
   const errors = []; page.on('pageerror', error => errors.push(error.message));
   await mockAPIs(page, [record('2026-10-18', 'all', {EUR: 5.5, USD: 6, JPY: 2000, GBP: 10, PLN: 25, CHF: 5, HUF: 1000})]);
-  await page.goto('/stat-panel/earnings'); await expect(page.locator('.currency-equivalent').first()).toHaveText('(≈ 133,88 Kč)');
+  await page.goto('/stat-panel/earnings');await openEarningsDetails(page); await expect(page.locator('.currency-equivalent').first()).toHaveText('(≈ 133,88 Kč)');
   const totals = await page.locator('.earnings-metrics').innerText();
   await expect(page.locator('.currency-code')).toHaveText(['EUR', 'USD', 'JPY']);
   await expect(page.locator('[data-currency="JPY"] .currency-original')).toHaveText('2 000 ¥');
@@ -120,14 +120,14 @@ test('seven currencies collapse to three, expand as 3 + 3 + 1, and fit mobile an
 for (const entries of [[], [record('2026-10-18', 'czk-only', {CZK: 100})]]) {
   test(`no currency panel or rate request for ${entries.length ? 'CZK-only' : 'empty'} reports`, async ({page}) => {
     const state = await mockAPIs(page, entries);
-    await page.goto('/stat-panel/earnings'); await expect(page.locator('#report')).toBeVisible();
+    await page.goto('/stat-panel/earnings');await openEarningsDetails(page); await expect(page.locator('#report')).toBeVisible();
     await expect(page.locator('#foreign-currencies')).toBeHidden(); expect(state.requests).toEqual([]);
   });
 }
 
 test('a rate outage retains original money and the main report; retry restores conversion', async ({page}) => {
   const state = await mockAPIs(page, [record('2026-10-18', 'a', {EUR: 3})]); state.rateStatus = 503;
-  await page.goto('/stat-panel/earnings');
+  await page.goto('/stat-panel/earnings');await openEarningsDetails(page);
   await expect(page.locator('#currency-status')).toContainText('Не удалось получить текущий курс');
   await expect(page.locator('#report')).toBeVisible(); await expect(page.locator('.currency-original')).toHaveText('3,00 €');
   await expect(page.locator('.currency-equivalent')).toHaveText('Нет курса');
@@ -139,7 +139,7 @@ test('a rate outage retains original money and the main report; retry restores c
 
 test('a missing quote keeps the original currency while other available conversions stay visible', async ({page}) => {
   const state = await mockAPIs(page, [record('2026-10-18', 'a', {EUR: 3, JPY: 2000})]); state.missingYen = true;
-  await page.goto('/stat-panel/earnings'); await expect(page.locator('#currency-status')).toContainText('Для некоторых валют');
+  await page.goto('/stat-panel/earnings');await openEarningsDetails(page); await expect(page.locator('#currency-status')).toContainText('Для некоторых валют');
   await expect(page.locator('[data-currency="JPY"] .currency-original')).toHaveText('2 000 ¥');
   await expect(page.locator('[data-currency="JPY"] .currency-equivalent')).toHaveText('Нет курса');
   await expect(page.locator('[data-currency="EUR"] .currency-equivalent')).toHaveText('(≈ 73,03 Kč)');
@@ -148,7 +148,7 @@ test('a missing quote keeps the original currency while other available conversi
 test('an earlier slow quote cannot replace the next report, and refocusing after midnight refreshes the rate date', async ({page}) => {
   const state = await mockAPIs(page, [record('2026-10-18', 'a', {EUR: 3}), record('2026-10-17', 'b', {EUR: 2.5})]);
   state.delayedFirst = true;
-  await page.goto('/stat-panel/earnings'); await expect(page.locator('#report')).toBeVisible();
+  await page.goto('/stat-panel/earnings');await openEarningsDetails(page); await expect(page.locator('#report')).toBeVisible();
   await expect.poll(() => state.requests.length).toBe(1);
   await page.locator('#from').fill('2026-10-17'); await page.locator('#to').fill('2026-10-17'); await page.locator('#show').click();
   await expect(page.locator('.currency-equivalent')).toHaveText('(≈ 60,86 Kč)');
@@ -161,6 +161,6 @@ test('an earlier slow quote cannot replace the next report, and refocusing after
 for (const [status, reason] of [[401, 'expired'], [403, 'denied']]) {
   test(`unauthorized currency rates (${status}) close the private panel`, async ({page}) => {
     const state = await mockAPIs(page, [record('2026-10-18', 'a', {EUR: 3})]); state.rateStatus = status;
-    await page.goto('/stat-panel/earnings'); await expect(page).toHaveURL(new RegExp('/panel-login/\\?reason=' + reason));
+    await page.goto('/stat-panel/earnings');await openEarningsDetails(page); await expect(page).toHaveURL(new RegExp('/panel-login/\\?reason=' + reason));
   });
 }

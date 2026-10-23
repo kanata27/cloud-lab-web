@@ -1,4 +1,4 @@
-import {test, expect} from '../support/browser.mjs';
+import {test, expect, openEarningsDetails} from '../support/browser.mjs';
 import {earning, trafficReport} from '../support/insights-fixtures.mjs';
 import {validateEntry, convert} from '../../statistics-panel/earnings-model.js';
 
@@ -8,7 +8,7 @@ async function mockEarnings(page, {foreign = false, secondSpot = false} = {}) {
     first.amounts[1].minor = 100;
     Object.assign(first, convert(first.amounts, first.snapshot));
   }
-  const state = {entries: [first], spots: [{id: 'spot-a', name: 'Набережная'}], years: [], analysisCalls: 0};
+  const state = {entries: [first], spots: [{id: 'spot-a', name: 'Набережная'}], years: [], quotes: 0, analysisCalls: 0};
   if (secondSpot) {
     state.spots.push({id: 'spot-b', name: 'Площадь'});
     state.entries.push({...earning('2026-10-08', 'second', '600'), spotId: 'spot-b'});
@@ -42,6 +42,7 @@ async function mockEarnings(page, {foreign = false, secondSpot = false} = {}) {
       return route.fulfill({json: {spots: state.spots}});
     }
     if (url.pathname.endsWith('/rates')) {
+      state.quotes++;
       const date = query.get('date');
       return route.fulfill({json: {requestedDate: date, rates: {CZK: 1, EUR: 25, USD: 20}, dates: {CZK: date, EUR: date, USD: date}}});
     }
@@ -62,9 +63,84 @@ async function mockEarnings(page, {foreign = false, secondSpot = false} = {}) {
 
 test.beforeEach(async ({page}) => page.clock.setFixedTime(new Date('2026-10-20T20:00:00Z')));
 
+test('details start closed, load only when opened, work with the keyboard and reset on reload', async ({page}) => {
+  const state = await mockEarnings(page, {foreign: true, secondSpot: true});
+  await page.goto('/stat-panel/earnings');
+  await expect(page.locator('#report')).toBeVisible();
+  await expect(page.locator('.earnings-metrics')).toBeVisible();
+  await expect(page.locator('.performances')).toBeVisible();
+  await expect(page.locator('#earnings-details')).toHaveJSProperty('open', false);
+  await expect(page.locator('#earnings-details-toggle')).toHaveText('Показать подробную статистику');
+  await expect(page.locator('.daily-panel')).toBeHidden();
+  await expect(page.locator('.weekday-panel')).toBeHidden();
+  await expect(page.locator('#annual-panel')).toBeHidden();
+  expect(state.years).toEqual([]); expect(state.quotes).toBe(0);
+  for (const width of [1440, 390, 320]) {
+    await page.setViewportSize({width, height: 1000});
+    expect(await page.evaluate(() => {
+      const summary = document.querySelector('.earnings-metrics').getBoundingClientRect();
+      const details = document.querySelector('#earnings-details').getBoundingClientRect();
+      const performances = document.querySelector('.performances').getBoundingClientRect();
+      return summary.bottom <= details.top && details.bottom + 19 <= performances.top
+        && summary.left === details.left && summary.right === details.right
+        && details.left === performances.left && details.right === performances.right
+        && document.documentElement.scrollWidth <= innerWidth;
+    })).toBe(true);
+    await page.screenshot({path: `test-results/earnings-collapsed-${width}.png`, fullPage: true});
+  }
+  await page.setViewportSize({width: 1440, height: 1000});
+  await page.locator('#earnings-details-toggle').focus(); await page.keyboard.press('Enter');
+  await expect(page.locator('#earnings-details')).toHaveJSProperty('open', true);
+  await expect(page.locator('#earnings-details-toggle')).toHaveText('Скрыть подробную статистику');
+  await expect(page.locator('#annual-report')).toBeVisible();
+  await expect(page.locator('#foreign-currencies')).toBeVisible();
+  await expect(page.locator('#daily-chart svg')).toBeVisible();
+  expect(state.years).toEqual([2026]); expect(state.quotes).toBe(1);
+  await page.locator('#annual-year').selectOption('2024');
+  await expect(page.locator('#annual-days .annual-day')).toHaveCount(366);
+  await page.locator('#annual-days [data-date="2024-01-01"]').hover();
+  await expect(page.locator('#annual-tooltip')).toBeVisible();
+  await page.locator('#earnings-details-toggle').focus(); await page.keyboard.press('Space');
+  await expect(page.locator('#earnings-details')).toHaveJSProperty('open', false);
+  await expect(page.locator('#annual-tooltip')).toBeHidden();
+  await expect(page.locator('.performances')).toBeVisible();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#annual-year')).toHaveValue('2024');
+  expect(state.years).toEqual([2026, 2024]); expect(state.quotes).toBe(1);
+  await page.locator('[data-days="7"]').click();
+  await expect(page.locator('#report')).toBeVisible();
+  await expect(page.locator('#earnings-details')).toHaveJSProperty('open', true);
+  const years = [...state.years], quotes = state.quotes;
+  await page.reload(); await expect(page.locator('#report')).toBeVisible();
+  await expect(page.locator('#earnings-details')).toHaveJSProperty('open', false);
+  expect(state.years).toEqual(years); expect(state.quotes).toBe(quotes);
+});
+
+test('editing a performance while closed refreshes the selected annual year on the next opening', async ({page}) => {
+  const state = await mockEarnings(page);
+  await page.goto('/stat-panel/earnings'); await openEarningsDetails(page);
+  await expect(page.locator('#annual-report')).toBeVisible();
+  await page.locator('#annual-year').selectOption('2024');
+  await expect(page.locator('#annual-days .annual-day')).toHaveCount(366);
+  await page.locator('#earnings-details-toggle').click();
+  await expect(page.locator('#earnings-details')).toHaveJSProperty('open', false);
+  const years = [...state.years];
+  await page.locator('.entry-trigger').click(); await page.getByRole('button', {name: 'Изменить данные'}).click();
+  await page.getByRole('textbox', {name: 'Сумма CZK', exact: true}).fill('400');
+  await page.locator('#save-entry').click(); await expect(page.locator('#entry-dialog')).toBeHidden();
+  await expect(page.locator('#total-czk')).toHaveText('400 Kč');
+  expect(state.years).toEqual(years);
+  await page.locator('#earnings-details-toggle').click();
+  await expect(page.locator('#annual-report')).toBeVisible();
+  await expect(page.locator('#annual-year')).toHaveValue('2024');
+  expect(state.years).toEqual([...years, 2024]);
+  await page.locator('#annual-year').selectOption('2026');
+  await expect(page.locator('#annual-days [data-date="2026-10-09"]')).toHaveAttribute('data-hour', '200');
+});
+
 test('both earnings analyses sit between currencies and performances; Insights no longer loads their data', async ({page}) => {
   const state = await mockEarnings(page, {foreign: true});
-  await page.goto('/stat-panel/earnings');
+  await page.goto('/stat-panel/earnings');await openEarningsDetails(page);
   await expect(page.locator('#annual-report')).toBeVisible();
   await expect(page.locator('#foreign-currencies')).toBeVisible();
   for (const width of [1440, 1000, 780, 390, 320]) {
@@ -97,7 +173,7 @@ test('both earnings analyses sit between currencies and performances; Insights n
 
 test('weekday spot follows the applied main filter and restores its independent selection for all spots', async ({page}) => {
   await mockEarnings(page, {secondSpot: true});
-  await page.goto('/stat-panel/earnings');
+  await page.goto('/stat-panel/earnings');await openEarningsDetails(page);
   await expect(page.locator('#weekday-spot')).toBeVisible();
   await page.locator('#weekday-spot').selectOption('spot-b');
   await expect(page.locator('.weekday-rate').first()).toHaveText('300 Kč/ч');
@@ -115,7 +191,7 @@ test('weekday spot follows the applied main filter and restores its independent 
 
 test('entry creation, editing, deletion and spot renaming refresh the annual calendar', async ({page}) => {
   const state = await mockEarnings(page);
-  await page.goto('/stat-panel/earnings');
+  await page.goto('/stat-panel/earnings');await openEarningsDetails(page);
   await expect(page.locator('#annual-summary')).toHaveText('Дней с выступлениями: 1');
   await page.locator('#add-entry').click();
   await page.locator('#entry-start').fill('14:00'); await page.locator('#entry-end').fill('16:00');

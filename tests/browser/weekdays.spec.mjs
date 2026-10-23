@@ -1,4 +1,4 @@
-import {test, expect} from '../support/browser.mjs';
+import {test, expect, openEarningsDetails} from '../support/browser.mjs';
 import {earning, trafficReport} from '../support/insights-fixtures.mjs';
 import {convert} from '../../statistics-panel/earnings-model.js';
 
@@ -44,7 +44,7 @@ test.beforeEach(async ({page}) => {
 
 test('earnings shows a weekday directly after every date without expanding the mobile page', async ({page}) => {
   await mockData(page, {entries: ['2026-10-09', '2026-10-04', '2026-10-03'].map(date => earning(date))});
-  await page.goto('/stat-panel/earnings');
+  await page.goto('/stat-panel/earnings');await openEarningsDetails(page);
   await expect(page.locator('#entries-table thead th').nth(1)).toHaveText('День недели');
   await expect(page.locator('#entries-body .entry-weekday')).toHaveText(['Пятница', 'Воскресенье', 'Суббота']);
   await expect(page.locator('#entries-body tr').first().locator('td').nth(0)).toHaveText('09.10.2026');
@@ -60,7 +60,7 @@ test('earnings shows a weekday directly after every date without expanding the m
 
 test('earnings ranks weighted hourly earnings before the performances, with one fixed spot and the selected period', async ({page}) => {
   await mockData(page, {entries: sampleEntries()});
-  await page.goto('/stat-panel/earnings');
+  await page.goto('/stat-panel/earnings');await openEarningsDetails(page);
   await expect(page.locator('#weekday-ranking li')).toHaveCount(7);
   await expect(page.locator('#weekday-spot')).toBeHidden();
   await expect(page.locator('#weekday-spot')).toBeDisabled();
@@ -82,7 +82,7 @@ test('earnings ranks weighted hourly earnings before the performances, with one 
 test('multiple registered spots can be switched locally, keep their selection and fit desktop and mobile', async ({page}) => {
   const spots = [{id: 'spot-a', name: 'Точка A'}, {id: 'spot-b', name: 'Точка B'}, {id: 'spot-c', name: 'Точка с длинным названием без выступлений за выбранный период'}];
   const calls = await mockData(page, {spots, entries: [...sampleEntries(), {...earning('2026-10-06', 'other', '900', '12:00', '13:00'), spotId: 'spot-b'}]});
-  await page.goto('/stat-panel/earnings');
+  await page.goto('/stat-panel/earnings');await openEarningsDetails(page);
   await expect(page.locator('#weekday-spot')).toBeVisible();
   await expect(page.locator('#weekday-spot option')).toHaveCount(3);
   await expect(page.locator('#weekday-only-spot')).toBeHidden();
@@ -125,7 +125,7 @@ test('multiple registered spots can be switched locally, keep their selection an
 
 for (const spots of [[], [{id: 'spot-a', name: 'Точка A'}]]) test(`empty earnings show seven zeros and no invented spot choices (${spots.length} spots)`, async ({page}) => {
   await mockData(page, {spots});
-  await page.goto('/stat-panel/earnings');
+  await page.goto('/stat-panel/earnings');await openEarningsDetails(page);
   await expect(page.locator('#report')).toBeVisible();
   await expect(page.locator('#weekday-spot')).toBeHidden();
   await expect(page.locator('.weekday-name')).toHaveText(['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье']);

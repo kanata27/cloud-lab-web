@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow,noarchive"><meta name="color-scheme" content="light dark">
-<title>Заработки</title><link rel="icon" href="/assets/favicon.svg"><link rel="stylesheet" href="/stat-panel/earnings.css?v=20261020-3"><link rel="stylesheet" href="/stat-panel/date-filter.css"><link rel="stylesheet" href="/stat-panel/earnings-analysis.css?v=20261023-1">
-<script src="/site-config.js" defer></script><script type="module" src="/stat-panel/earnings.js?v=20261023-1"></script>
+<title>Заработки</title><link rel="icon" href="/assets/favicon.svg"><link rel="stylesheet" href="/stat-panel/earnings.css?v=20261020-3"><link rel="stylesheet" href="/stat-panel/date-filter.css"><link rel="stylesheet" href="/stat-panel/earnings-analysis.css?v=20261023-2">
+<script src="/site-config.js" defer></script><script type="module" src="/stat-panel/earnings.js?v=20261023-2"></script>
   <link rel="preload" href="/stat-panel/fonts/golos-text-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/stat-panel/fonts/golos-text-cyrillic-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/stat-panel/panel-typography.css?v=20261018-4">
@@ -73,6 +73,9 @@
     </tbody>
   </table>
 </section>
+<details id="earnings-details" class="earnings-details">
+  <summary id="earnings-details-toggle" aria-controls="earnings-details-content"><span id="earnings-details-label">Показать подробную статистику</span><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true" focusable="false"><path d="m6 9 6 6 6-6"/></svg></summary>
+  <div id="earnings-details-content" class="earnings-details-content">
 <div class="charts"><section class="panel daily-panel"><div class="section-heading"><h2>Заработок по дням</h2><div class="switch" role="group" aria-label="Показатель графика"><button type="button" data-chart="sum" aria-pressed="true">Сумма</button><button type="button" data-chart="hour" aria-pressed="false">За час</button></div></div><div id="daily-chart" class="daily-chart"></div></section><section class="panel spots-panel" id="spots-panel" hidden><h2>По точкам · за час</h2><div id="spots-chart"></div></section></div>
 <section id="foreign-currencies" class="panel foreign-currencies" aria-labelledby="currency-summary-title" hidden>
   <div class="currency-summary-heading"><h2 id="currency-summary-title">Валюта к обмену</h2><p id="currency-quote-date" class="currency-quote-date"></p></div>
@@ -110,6 +113,8 @@
       <p id="annual-help" class="sr-only">Наведи на день или нажми на него, чтобы увидеть заработок за час. На телефоне календарь можно прокрутить вбок. Стрелки вверх и вниз переходят к соседнему дню, влево и вправо — на неделю. Home и End переходят к началу и концу доступного периода. Escape закрывает подсказку.</p>
       <div id="annual-tooltip" class="annual-tooltip" popover="manual" role="tooltip"></div>
     </section>
+  </div>
+</details>
 <section class="panel performances"><h2>Выступления</h2><div id="empty" class="empty" hidden><p>За этот период выступлений нет.</p></div><div class="table-wrap"><table id="entries-table"><thead><tr><th>Дата</th><th scope="col">День недели</th><th>Время</th><th>Точка</th><th>Получено</th><th>Итого</th><th>За час</th><th><span class="sr-only">Действия</span></th></tr></thead><tbody id="entries-body"></tbody></table></div></section>
 </section>
 </main>

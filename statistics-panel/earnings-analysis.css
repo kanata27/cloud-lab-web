@@ -1,3 +1,20 @@
+.earnings-details { min-width:0; margin-bottom:20px; }
+.earnings-details > summary { display:flex; align-items:center; justify-content:space-between; gap:16px; min-height:64px; padding:18px 24px; border:1px solid var(--line); border-radius:13px; background:var(--panel); font-size:15px; font-weight:500; list-style:none; cursor:pointer; }
+.earnings-details > summary::-webkit-details-marker { display:none; }
+.earnings-details > summary::marker { content:''; }
+.earnings-details > summary:hover { background:var(--soft); }
+.earnings-details > summary:focus-visible { outline:3px solid var(--accent); outline-offset:3px; }
+.earnings-details > summary svg { flex-shrink:0; color:var(--muted); transition:transform .16s ease; }
+.earnings-details[open] > summary svg { transform:rotate(180deg); }
+.earnings-details-content { display:flow-root; padding-top:20px; }
+.earnings-details-content > .annual-panel { margin-bottom:0; }
+@media(max-width:760px) {
+ .earnings-details > summary { padding:17px; gap:12px; }
+}
+@media(prefers-reduced-motion:reduce) {
+ .earnings-details > summary svg { transition:none; }
+}
+
 .weekday-panel { margin-top:20px; padding:24px; }
 .weekday-heading { display:flex; align-items:center; justify-content:space-between; gap:20px; margin-bottom:24px; }
 .weekday-heading h2 { margin:0 0 7px; font-size:16px; }
