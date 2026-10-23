@@ -131,9 +131,10 @@ test('editing a performance while closed refreshes the selected annual year on t
   await expect(page.locator('#total-czk')).toHaveText('400 Kč');
   expect(state.years).toEqual(years);
   await page.locator('#earnings-details-toggle').click();
+  // The native details toggle is asynchronous; its old calendar can be visible before the refresh starts.
+  await expect.poll(() => [...state.years]).toEqual([...years, 2024]);
   await expect(page.locator('#annual-report')).toBeVisible();
   await expect(page.locator('#annual-year')).toHaveValue('2024');
-  expect(state.years).toEqual([...years, 2024]);
   await page.locator('#annual-year').selectOption('2026');
   await expect(page.locator('#annual-days [data-date="2026-10-09"]')).toHaveAttribute('data-hour', '200');
 });
