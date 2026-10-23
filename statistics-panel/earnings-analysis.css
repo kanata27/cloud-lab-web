@@ -1,10 +1,12 @@
 .earnings-details { min-width:0; margin-bottom:20px; }
-.earnings-details > summary { display:flex; align-items:center; justify-content:space-between; gap:16px; min-height:64px; padding:18px 24px; border:1px solid var(--line); border-radius:13px; background:var(--panel); font-size:15px; font-weight:500; list-style:none; cursor:pointer; }
+.earnings-details > summary { display:grid; grid-template-columns:20px minmax(0,1fr) 20px; align-items:center; gap:16px; min-height:64px; padding:18px 24px; border:1px solid var(--line); border-radius:13px; background:var(--panel); font-size:15px; font-weight:500; list-style:none; cursor:pointer; }
+.earnings-details > summary > span { grid-column:2; min-width:0; text-align:center; }
 .earnings-details > summary::-webkit-details-marker { display:none; }
 .earnings-details > summary::marker { content:''; }
-.earnings-details > summary:hover { background:var(--soft); }
+.earnings-details > summary:hover { background:var(--accent-button); border-color:var(--accent-button); color:var(--on-accent); }
+.earnings-details > summary:hover svg { color:inherit; }
 .earnings-details > summary:focus-visible { outline:3px solid var(--accent); outline-offset:3px; }
-.earnings-details > summary svg { flex-shrink:0; color:var(--muted); transition:transform .16s ease; }
+.earnings-details > summary svg { grid-column:3; color:var(--muted); transition:transform .16s ease; }
 .earnings-details[open] > summary svg { transform:rotate(180deg); }
 .earnings-details-content { display:flow-root; padding-top:20px; }
 .earnings-details-content > .annual-panel { margin-bottom:0; }
