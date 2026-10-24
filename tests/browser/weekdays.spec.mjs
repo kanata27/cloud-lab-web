@@ -19,6 +19,12 @@ async function mockData(page, {entries = [], spots = [{id: 'spot-a', name: 'То
       calls.spots++;
       return failSpots ? route.fulfill({status: 503, json: {error: 'unavailable'}}) : route.fulfill({json: {spots}});
     }
+    if (url.pathname === '/earnings-api/rates') {
+      const date = url.searchParams.get('date'), rates = {CZK: 1, EUR: 25, USD: 20, PLN: 6};
+      return route.fulfill({json: {requestedDate: date, rates,
+        dates: Object.fromEntries(Object.keys(rates).map(currency => [currency, date]))}});
+    }
+    expect(url.pathname, 'Only entries requests belong in the entries counter').toBe('/earnings-api/entries');
     calls.entries++;
     await route.fulfill({json: {entries: entries.filter(entry => entry.date >= url.searchParams.get('from') && entry.date <= url.searchParams.get('to') && (!url.searchParams.get('spot') || entry.spotId === url.searchParams.get('spot')))}});
   });
@@ -82,18 +88,25 @@ test('earnings ranks weighted hourly earnings before the performances, with one 
 test('multiple registered spots can be switched locally, keep their selection and fit desktop and mobile', async ({page}) => {
   const spots = [{id: 'spot-a', name: 'Точка A'}, {id: 'spot-b', name: 'Точка B'}, {id: 'spot-c', name: 'Точка с длинным названием без выступлений за выбранный период'}];
   const calls = await mockData(page, {spots, entries: [...sampleEntries(), {...earning('2026-10-06', 'other', '900', '12:00', '13:00'), spotId: 'spot-b'}]});
+  let pendingRates;
+  await page.route('**/earnings-api/rates?**', route => { pendingRates = route; });
   await page.goto('/stat-panel/earnings');await openEarningsDetails(page);
   await expect(page.locator('#weekday-spot')).toBeVisible();
   await expect(page.locator('#weekday-spot option')).toHaveCount(3);
   await expect(page.locator('#weekday-only-spot')).toBeHidden();
   await expect(page.locator('.weekday-rate').first()).toHaveText('94 Kč/ч');
+  await expect.poll(() => Boolean(pendingRates)).toBe(true);
   const totals = await page.locator('.earnings-metrics').innerText(), before = {...calls};
   await page.locator('#weekday-spot').selectOption('spot-b');
   await expect(page.locator('.weekday-name').first()).toHaveText('Вторник');
   await expect(page.locator('.weekday-rate').first()).toHaveText('900 Kč/ч');
   await expect(page.locator('.weekday-count')).toHaveText(['1', '0', '0', '0', '0', '0', '0']);
   expect(await page.locator('.earnings-metrics').innerText()).toBe(totals);
+  // Finish the independent currency request after switching spots; it must not count as an entries request.
+  const rateResponse = page.waitForResponse(response => new URL(response.url()).pathname === '/earnings-api/rates');
+  await pendingRates.fallback(); await rateResponse;
   expect(calls).toEqual(before);
+  await expect(page.locator('.currency-equivalent')).toHaveText(['(≈ 50,00 Kč)', '(≈ 20,00 Kč)', '(≈ 18,00 Kč)']);
   await page.locator('#show').click();
   await expect(page.locator('#weekday-spot')).toHaveValue('spot-b');
   await expect(page.locator('.weekday-rate').first()).toHaveText('900 Kč/ч');
