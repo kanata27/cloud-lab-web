@@ -23,13 +23,15 @@ export class EarningsCalendar {
     this.request = null;
     this.model = null;
     this.anchor = null;
+    this.keyboardNavigation = false;
+    this.pointerPosition = null;
     const listen = (element, event, handler, options = {}) => element.addEventListener(event, handler, {...options, signal: this.events.signal});
     const year = Number(this.asOf.slice(0, 4));
     $('annual-year').replaceChildren(...Array.from({length: year - 2023}, (_, index) => new Option(String(year - index), String(year - index))));
     listen($('annual-year'), 'change', () => this.load());
     listen($('annual-retry'), 'click', () => this.load());
     listen($('annual-days'), 'pointerover', event => {
-      if (event.pointerType === 'touch') return;
+      if (event.pointerType === 'touch' || this.keyboardNavigation) return;
       const button = event.target.closest('.annual-day');
       if (button && !button.disabled) this.showDay(button);
     });
@@ -39,17 +41,35 @@ export class EarningsCalendar {
       else this.hideTooltip();
     });
     listen($('annual-days'), 'focusin', event => {
-      if (event.target.matches('.annual-day')) { this.activate(event.target); this.showDay(event.target); }
+      if (event.target.matches('.annual-day')) {
+        this.keyboardNavigation = true;
+        this.activate(event.target); this.showDay(event.target);
+      }
     });
     listen($('annual-days'), 'focusout', event => {
       if (!$('annual-days').contains(event.relatedTarget)) this.hideTooltip();
     });
     listen($('annual-days'), 'click', event => {
       const button = event.target.closest('.annual-day');
-      if (button && !button.disabled) { this.activate(button); this.showDay(button); }
+      if (button && !button.disabled) {
+        this.keyboardNavigation = false;
+        this.activate(button); this.showDay(button);
+      }
     });
     listen($('annual-days'), 'keydown', event => this.navigate(event));
+    listen(document, 'pointermove', event => {
+      if (event.pointerType === 'touch') return;
+      const previous = this.pointerPosition;
+      this.pointerPosition = {x: event.clientX, y: event.clientY};
+      if (previous && previous.x === event.clientX && previous.y === event.clientY) return;
+      if (!this.keyboardNavigation) return;
+      this.keyboardNavigation = false;
+      const button = event.target.closest('.annual-day');
+      if (button && $('annual-days').contains(button) && !button.disabled) this.showDay(button);
+    }, {passive: true});
     listen(document, 'pointerdown', event => {
+      this.keyboardNavigation = false;
+      this.pointerPosition = {x: event.clientX, y: event.clientY};
       if (!event.target.closest('.annual-day')) this.hideTooltip();
     });
     listen(window, 'resize', () => this.positionTooltip());
@@ -132,12 +152,14 @@ export class EarningsCalendar {
 
   navigate(event) {
     if (!this.model || !event.target.matches('.annual-day')) return;
-    if (event.key === 'Escape') { event.preventDefault(); this.hideTooltip(); return; }
+    if (event.key === 'Escape') { this.keyboardNavigation = true; event.preventDefault(); this.hideTooltip(); return; }
     const index = this.model.days.findIndex(day => day.date === event.target.dataset.date);
     const last = this.model.days.findLastIndex(day => !day.future);
     const next = {ArrowUp: index - 1, ArrowDown: index + 1, ArrowLeft: index - 7, ArrowRight: index + 7, Home: 0, End: last}[event.key];
     if (next === undefined) return;
     event.preventDefault();
+    // Scrolling can fire pointerover under a stationary mouse; keep the keyboard's selected day.
+    this.keyboardNavigation = true;
     const date = this.model.days[Math.max(0, Math.min(last, next))].date;
     const button = $('annual-days').querySelector(`[data-date="${date}"]`);
     this.activate(button);

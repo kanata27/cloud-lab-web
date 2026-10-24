@@ -103,6 +103,8 @@ test('keyboard navigation and a horizontally scrolling mobile calendar keep ever
   await expect(page.locator('.annual-day')).toHaveCount(366);
   for (const width of [1440, 1000, 780, 414, 390, 320]) {
     await page.setViewportSize({width, height: 1000});
+    // Leave the pointer over the grid while keyboard navigation scrolls other days underneath it.
+    await page.locator('#annual-days [data-date="2024-10-19"]').hover();
     await page.locator('#annual-days [tabindex="0"]').focus();
     await page.keyboard.press('Home');
     await expect(page.locator('#annual-days [data-date="2024-01-01"]')).toBeFocused();
@@ -112,13 +114,18 @@ test('keyboard navigation and a horizontally scrolling mobile calendar keep ever
     await expect(page.locator('#annual-days [data-date="2024-01-09"]')).toBeFocused();
     await page.keyboard.press('End');
     await expect(page.locator('#annual-days [data-date="2024-12-31"]')).toBeFocused();
+    await expect(page.locator('#annual-tooltip strong')).toContainText('31 декабря 2024');
     await expect(page.locator('#annual-tooltip')).toContainText('60 Kč (2,4 €)');
+    await expect(page.locator('#annual-days [aria-describedby="annual-tooltip"]')).toHaveAttribute('data-date', '2024-12-31');
     expect(await page.locator('#annual-tooltip').evaluate(tooltip => {
       const box = tooltip.getBoundingClientRect();return box.left >= 8 && box.right <= innerWidth - 8 && box.top >= 8 && box.bottom <= innerHeight - 8;
     })).toBe(true);
     await expect(page.locator('#annual-days [tabindex="0"]')).toHaveCount(1);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     if (width <= 780) expect(await page.locator('#annual-scroll').evaluate(scroll => scroll.scrollWidth > scroll.clientWidth)).toBe(true);
+    await page.locator('#annual-days [data-date="2024-12-30"]').hover();
+    await expect(page.locator('#annual-tooltip strong')).toContainText('30 декабря 2024');
+    await expect(page.locator('#annual-days [data-date="2024-12-31"]')).toBeFocused();
     await page.keyboard.press('Escape');await expect(page.locator('#annual-tooltip')).toBeHidden();
   }
   await page.locator('#annual-panel').screenshot({path: 'test-results/annual-calendar-mobile.png'});
