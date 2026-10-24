@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow,noarchive"><meta name="color-scheme" content="light dark">
-<title>Заработки</title><link rel="icon" href="/assets/favicon.svg"><link rel="stylesheet" href="/stat-panel/earnings.css?v=20261020-3"><link rel="stylesheet" href="/stat-panel/date-filter.css">
-<script src="/site-config.js" defer></script><script type="module" src="/stat-panel/earnings.js?v=20261020-2"></script>
+<title>Заработки</title><link rel="icon" href="/assets/favicon.svg"><link rel="stylesheet" href="/stat-panel/earnings.css?v=20261020-3"><link rel="stylesheet" href="/stat-panel/date-filter.css"><link rel="stylesheet" href="/stat-panel/earnings-analysis.css?v=20261024-3">
+<script src="/site-config.js" defer></script><script type="module" src="/stat-panel/earnings.js?v=20261023-2"></script>
   <link rel="preload" href="/stat-panel/fonts/golos-text-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/stat-panel/fonts/golos-text-cyrillic-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/stat-panel/panel-typography.css?v=20261018-4">
@@ -73,6 +73,9 @@
     </tbody>
   </table>
 </section>
+<details id="earnings-details" class="earnings-details">
+  <summary id="earnings-details-toggle" aria-controls="earnings-details-content"><span id="earnings-details-label">Показать подробную статистику</span><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true" focusable="false"><path d="m6 9 6 6 6-6"/></svg></summary>
+  <div id="earnings-details-content" class="earnings-details-content">
 <div class="charts"><section class="panel daily-panel"><div class="section-heading"><h2>Заработок по дням</h2><div class="switch" role="group" aria-label="Показатель графика"><button type="button" data-chart="sum" aria-pressed="true">Сумма</button><button type="button" data-chart="hour" aria-pressed="false">За час</button></div></div><div id="daily-chart" class="daily-chart"></div></section><section class="panel spots-panel" id="spots-panel" hidden><h2>По точкам · за час</h2><div id="spots-chart"></div></section></div>
 <section id="foreign-currencies" class="panel foreign-currencies" aria-labelledby="currency-summary-title" hidden>
   <div class="currency-summary-heading"><h2 id="currency-summary-title">Валюта к обмену</h2><p id="currency-quote-date" class="currency-quote-date"></p></div>
@@ -80,6 +83,38 @@
   <div class="currency-status-row"><p id="currency-status" role="status" hidden></p><button id="currency-retry" class="quiet" type="button" hidden>Повторить</button></div>
   <button id="currency-toggle" class="currency-toggle quiet" type="button" aria-expanded="false" aria-controls="currency-grid" hidden>Показать ещё</button>
 </section>
+      <section class="panel weekday-panel" aria-labelledby="weekday-title">
+        <div class="weekday-heading panel-heading">
+          <div><h2 id="weekday-title">Доходность по дням недели</h2></div>
+          <label id="weekday-spot-picker" class="weekday-spot-picker" hidden><span>Точка</span><select id="weekday-spot" aria-label="Точка для анализа дней недели" disabled></select></label>
+          <p id="weekday-only-spot" class="weekday-only-spot"></p>
+        </div>
+        <ol id="weekday-ranking" class="weekday-ranking" aria-label="Дни недели по среднему заработку за час" aria-live="polite"></ol>
+        <p id="weekday-empty" class="weekday-description" hidden>За выбранный период выступлений здесь нет.</p>
+      </section>
+    <section class="panel annual-panel" id="annual-panel" aria-labelledby="annual-title">
+      <div class="annual-heading panel-heading">
+        <div><h2 id="annual-title">Доходность за год</h2></div>
+        <label class="annual-year">Год<select id="annual-year" aria-label="Год календаря"></select></label>
+      </div>
+      <p id="annual-message" class="annual-description" role="status">Загружаем календарь…</p>
+      <button id="annual-retry" class="quiet annual-retry" type="button" hidden>Повторить</button>
+      <div id="annual-report" hidden>
+        <div id="annual-scroll" class="annual-scroll" role="region" aria-label="Годовой календарь заработков">
+          <div id="annual-calendar" class="annual-calendar">
+            <div id="annual-months" class="annual-months" aria-hidden="true"></div>
+            <div class="annual-weekdays" aria-hidden="true"><span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span></div>
+            <div id="annual-days" class="annual-days" role="group" aria-label="Дни года" aria-describedby="annual-help"></div>
+          </div>
+        </div>
+        <p class="annual-scroll-hint">Листай календарь вбок ↔</p>
+        <div class="annual-footer"><p id="annual-summary" class="annual-description"></p><div class="annual-legend" aria-label="Чем насыщеннее цвет, тем выше заработок за час"><span>Меньше</span><i data-level="0"></i><i data-level="1"></i><i data-level="2"></i><i data-level="3"></i><i data-level="4"></i><span>Больше</span></div></div>
+      </div>
+      <p id="annual-help" class="sr-only">Наведи на день или нажми на него, чтобы увидеть заработок за час. На телефоне календарь можно прокрутить вбок. Стрелки вверх и вниз переходят к соседнему дню, влево и вправо — на неделю. Home и End переходят к началу и концу доступного периода. Escape закрывает подсказку.</p>
+      <div id="annual-tooltip" class="annual-tooltip" popover="manual" role="tooltip"></div>
+    </section>
+  </div>
+</details>
 <section class="panel performances"><h2>Выступления</h2><div id="empty" class="empty" hidden><p>За этот период выступлений нет.</p></div><div class="table-wrap"><table id="entries-table"><thead><tr><th>Дата</th><th scope="col">День недели</th><th>Время</th><th>Точка</th><th>Получено</th><th>Итого</th><th>За час</th><th><span class="sr-only">Действия</span></th></tr></thead><tbody id="entries-body"></tbody></table></div></section>
 </section>
 </main>

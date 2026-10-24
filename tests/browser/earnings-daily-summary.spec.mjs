@@ -1,4 +1,4 @@
-import {test, expect} from '../support/browser.mjs';
+import {test, expect, openEarningsDetails} from '../support/browser.mjs';
 import {earning} from '../support/insights-fixtures.mjs';
 import {convert} from '../../statistics-panel/earnings-model.js';
 
@@ -64,7 +64,7 @@ test('performance duration follows entries, period and spot; the summary table a
     return route.fulfill({json: {entries: entries.filter(entry => entry.date >= query.get('from')
       && entry.date <= query.get('to') && (!query.get('spot') || entry.spotId === query.get('spot'))) }});
   });
-  await page.goto('/stat-panel/earnings');
+  await page.goto('/stat-panel/earnings');await openEarningsDetails(page);
   await expect(page.locator('#count')).toHaveText('3');
   await expect(page.locator('#average-duration')).toHaveText('2 ч 7 мин');
   await expect(page.locator('#weekly-count')).toHaveText('0,5');
@@ -112,7 +112,7 @@ test('summary keeps long totals, units and all six readings visible on narrow sc
   await page.route('**/earnings-api/**', route => route.fulfill({json:
     route.request().url().includes('/spots') ? {spots: [{id: 'spot-a', name: 'Набережная'}]} : {entries},
   }));
-  await page.goto('/stat-panel/earnings');
+  await page.goto('/stat-panel/earnings');await openEarningsDetails(page);
   await expect(page.locator('#count')).toHaveText('6');
   await expect(page.locator('#total-czk')).toHaveText('5 999 999,94 Kč');
   await expect(page.locator('#total-time')).toHaveText('143 ч 54 мин');
@@ -150,7 +150,7 @@ test('weekly frequency excludes partial weeks, counts empty weeks and follows th
     await page.locator('#from').fill(from); await page.locator('#to').fill(to); await page.locator('#show').click();
     await expect(page.locator('#report')).toBeVisible();
   };
-  await page.goto('/stat-panel/earnings');
+  await page.goto('/stat-panel/earnings');await openEarningsDetails(page);
   await range('2026-10-05', '2026-10-18');
   await expect(page.locator('#weekly-count')).toHaveText('2,5');
   await expect(page.locator('#weekly-count')).toHaveAttribute('title', /Полных недель пн–вс: 2/);

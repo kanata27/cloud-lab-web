@@ -1,0 +1,93 @@
+.earnings-details { min-width:0; margin-bottom:20px; }
+.earnings-details > summary { display:grid; grid-template-columns:20px minmax(0,1fr) 20px; align-items:center; gap:16px; min-height:64px; padding:18px 24px; border:1px solid var(--line); border-radius:13px; background:var(--panel); font-size:15px; font-weight:500; list-style:none; cursor:pointer; }
+.earnings-details > summary > span { grid-column:2; min-width:0; text-align:center; }
+.earnings-details > summary::-webkit-details-marker { display:none; }
+.earnings-details > summary::marker { content:''; }
+.earnings-details > summary:hover { background:var(--soft); }
+.earnings-details > summary:focus-visible { outline:3px solid var(--accent); outline-offset:3px; }
+.earnings-details > summary svg { grid-column:3; color:var(--muted); transition:transform .16s ease; }
+.earnings-details[open] > summary svg { transform:rotate(180deg); }
+.earnings-details-content { display:flow-root; padding-top:20px; }
+.earnings-details-content > .annual-panel { margin-bottom:0; }
+@media(max-width:760px) {
+ .earnings-details > summary { padding:17px; gap:12px; }
+}
+@media(prefers-reduced-motion:reduce) {
+ .earnings-details > summary svg { transition:none; }
+}
+
+.weekday-panel { margin-top:20px; padding:23px; }
+.weekday-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:10px; }
+.weekday-heading h2 { margin:0; }
+.weekday-description { margin:0; color:var(--muted); font-size:13px; }
+.weekday-spot-picker { display:flex; align-items:center; gap:8px; width:min(300px,40%); flex-shrink:0; }
+.weekday-spot-picker select { flex:1; min-height:36px; padding:6px 10px; text-overflow:ellipsis; }
+.weekday-only-spot { margin:0; max-width:40%; color:var(--muted); font-size:14px; text-align:right; overflow-wrap:anywhere; }
+.weekday-ranking { list-style:none; margin:0; padding:0; display:grid; gap:18px; }
+.weekday-ranking li { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:7px 16px; }
+.weekday-name { font-size:15px; }
+.weekday-rate { font-size:15px; font-weight:500; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.weekday-track { grid-column:1/-1; display:flex; align-items:center; gap:10px; min-width:0; }
+.weekday-count { flex-shrink:0; min-width:1.7em; color:var(--muted); font-size:12px; line-height:1; padding-top:2px; font-variant-numeric:tabular-nums; }
+.weekday-ranking progress { flex:1; min-width:0; display:block; width:auto; height:6px; border:0; border-radius:4px; background:var(--soft); accent-color:var(--accent); }
+#weekday-empty { margin-top:20px; }
+
+@media(max-width:760px) {
+  .weekday-panel { padding:17px; }
+  .weekday-heading { align-items:stretch; flex-direction:column; gap:10px; }
+  .weekday-spot-picker { width:100%; }
+  .weekday-only-spot { max-width:100%; text-align:left; }
+}
+
+/* Calendar intensity represents hourly earnings, not the amount earned per day. */
+.annual-panel { --heat-0:#eeebe5; --heat-1:#efdbd1; --heat-2:#dfb6a8; --heat-3:#c9917e; --heat-4:#b87560; margin-top:20px; padding:23px; min-width:0; }
+.annual-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:6px; }
+.annual-heading h2 { margin:0; }
+.annual-description { margin:0; color:var(--muted); font-size:13px; }
+.annual-year { display:flex; align-items:center; gap:8px; flex-shrink:0; }
+.annual-year select { width:100px; min-height:36px; padding:6px 10px; font-size:14px; }
+.annual-scroll { max-width:100%; overflow-x:auto; overscroll-behavior-x:contain; -webkit-overflow-scrolling:touch; scrollbar-width:thin; padding:4px 2px 10px; }
+.annual-calendar { display:grid; grid-template-columns:28px minmax(0,1fr); grid-template-rows:20px auto; gap:6px 10px; min-width:820px; max-width:1140px; width:100%; }
+.annual-months { grid-column:2; grid-row:1; display:grid; grid-template-columns:repeat(var(--annual-weeks),minmax(0,1fr)); column-gap:3px; color:var(--muted); font-size:11px; }
+.annual-months span { white-space:nowrap; }
+.annual-weekdays { grid-column:1; grid-row:2; display:grid; grid-template-rows:repeat(7,minmax(0,1fr)); row-gap:3px; align-items:center; color:var(--muted); font-size:11px; }
+.annual-days { grid-column:2; grid-row:2; display:grid; grid-template-rows:repeat(7,auto); grid-template-columns:repeat(var(--annual-weeks),minmax(0,1fr)); grid-auto-flow:column; gap:3px; }
+.annual-day,.annual-placeholder { display:block; width:100%; aspect-ratio:1; min-height:0; min-width:0; padding:0; border:1px solid #00000009; border-radius:3px; background:var(--heat-0); }
+.annual-placeholder { visibility:hidden; }
+.annual-day[data-level="1"],.annual-legend [data-level="1"] { background:var(--heat-1); }
+.annual-day[data-level="2"],.annual-legend [data-level="2"] { background:var(--heat-2); }
+.annual-day[data-level="3"],.annual-legend [data-level="3"] { background:var(--heat-3); }
+.annual-day[data-level="4"],.annual-legend [data-level="4"] { background:var(--heat-4); }
+.annual-day:disabled { opacity:.4; cursor:default; }
+.annual-day:not(:disabled):hover { background:var(--heat-0); box-shadow:0 0 0 1px var(--accent); }
+.annual-day:not(:disabled)[data-level="1"]:hover { background:var(--heat-1); }
+.annual-day:not(:disabled)[data-level="2"]:hover { background:var(--heat-2); }
+.annual-day:not(:disabled)[data-level="3"]:hover { background:var(--heat-3); }
+.annual-day:not(:disabled)[data-level="4"]:hover { background:var(--heat-4); }
+.annual-day[aria-current="date"] { box-shadow:0 0 0 1px var(--muted); }
+.annual-day:focus-visible { outline:2px solid var(--text); outline-offset:1px; }
+.annual-footer { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px 20px; margin-top:14px; }
+.annual-legend { display:flex; align-items:center; gap:4px; color:var(--muted); font-size:11px; }
+.annual-legend span:first-child { margin-right:4px; }.annual-legend span:last-child { margin-left:4px; }
+.annual-legend i { display:block; width:12px; height:12px; border:1px solid #00000009; border-radius:2px; background:var(--heat-0); }
+.annual-tooltip { position:fixed; inset:auto; margin:0; width:max-content; max-width:min(320px,calc(100vw - 16px)); padding:13px 15px; border:1px solid var(--line); border-radius:9px; background:var(--panel); color:var(--text); box-shadow:0 5px 24px #0002; font-size:12px; line-height:1.55; pointer-events:none; }
+.annual-tooltip strong { display:block; margin-bottom:8px; font-weight:500; }
+.annual-tooltip dl { display:grid; grid-template-columns:auto minmax(0,1fr); gap:3px 22px; margin:0; }
+.annual-tooltip dt,.annual-tooltip dd { margin:0; }.annual-tooltip dt { color:var(--muted); }.annual-tooltip dd { min-width:0; overflow-wrap:anywhere; text-align:right; font-variant-numeric:tabular-nums; }
+.annual-tooltip p { margin:0; color:var(--muted); }
+.annual-retry { margin-top:12px; }
+.annual-scroll-hint { display:none; }
+@media(prefers-color-scheme:dark) {
+ .annual-panel { --heat-0:#353830; --heat-1:#5c3d32; --heat-2:#855642; --heat-3:#ad755a; --heat-4:#d9a58f; }
+ .annual-day,.annual-legend i { border-color:#ffffff0c; }
+}
+@media(max-width:760px) {
+ .annual-panel { padding:17px; }
+ .annual-heading { gap:12px; }
+ .annual-description { font-size:12px; }
+ .annual-year select { width:84px; }
+ .annual-calendar { min-width:960px; }
+ .annual-scroll-hint { display:block; margin:4px 0 0; color:var(--muted); font-size:11px; }
+}
+
+.annual-panel { margin-bottom:20px; }

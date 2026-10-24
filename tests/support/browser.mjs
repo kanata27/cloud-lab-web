@@ -6,3 +6,9 @@ export const test=base.extend({
   },{auto:true}],
 });
 export {expect};
+
+export async function openEarningsDetails(page) {
+  await expect(page.locator('#report')).toBeVisible();
+  const details = page.locator('#earnings-details');
+  if (!await details.evaluate(element => element.open)) await page.locator('#earnings-details-toggle').click();
+}

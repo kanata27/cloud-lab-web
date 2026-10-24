@@ -1,4 +1,4 @@
-import {test, expect} from '../support/browser.mjs';
+import {test, expect, openEarningsDetails} from '../support/browser.mjs';
 import {trafficReport, earning} from '../support/insights-fixtures.mjs';
 
 function calendarData(year) {
@@ -48,7 +48,7 @@ test.beforeEach(async ({page}) => {
 test('annual heatmap shows the whole year, uses hourly intensity and stays independent of the period filter', async ({page}) => {
   const {years} = await mockAPIs(page), errors = [];
   page.on('pageerror', error => errors.push(error.message));
-  await page.goto('/stat-panel/insights');
+  await page.goto('/stat-panel/earnings');await openEarningsDetails(page);
   await expect(page.locator('#report')).toBeVisible();
   await expect(page.locator('#annual-report')).toBeVisible();
   await expect(page.locator('#annual-year')).toHaveValue('2026');
@@ -81,12 +81,12 @@ test('annual heatmap shows the whole year, uses hourly intensity and stays indep
   await expect(page.locator('#annual-summary')).toHaveText('Дней с выступлениями: 4');
   expect(years).toEqual([2026]);
   await page.locator('#annual-panel').screenshot({path: 'test-results/annual-calendar-desktop.png'});
-  const totals = await page.locator('.insights-metrics').innerText();
+  const totals = await page.locator('.earnings-metrics').innerText();
   await page.locator('#annual-year').selectOption('2024');
   await expect(page.locator('.annual-day')).toHaveCount(366);
   await expect(page.locator('#annual-days [data-date="2024-02-29"]')).toHaveCount(1);
   await expect(page.locator('.annual-day:disabled')).toHaveCount(0);
-  expect(await page.locator('.insights-metrics').innerText()).toBe(totals);
+  expect(await page.locator('.earnings-metrics').innerText()).toBe(totals);
   await page.locator('#annual-year').selectOption('2025');
   await expect(page.locator('.annual-day')).toHaveCount(365);
   await expect(page.locator('#annual-summary')).toHaveText('Дней с выступлениями: 0');
@@ -97,12 +97,14 @@ test('annual heatmap shows the whole year, uses hourly intensity and stays indep
 
 test('keyboard navigation and a horizontally scrolling mobile calendar keep every day and tooltip accessible', async ({page}) => {
   await mockAPIs(page);
-  await page.goto('/stat-panel/insights');
+  await page.goto('/stat-panel/earnings');await openEarningsDetails(page);
   await expect(page.locator('#annual-report')).toBeVisible();
   await page.locator('#annual-year').selectOption('2024');
   await expect(page.locator('.annual-day')).toHaveCount(366);
   for (const width of [1440, 1000, 780, 414, 390, 320]) {
     await page.setViewportSize({width, height: 1000});
+    // Leave the pointer over the grid while keyboard navigation scrolls other days underneath it.
+    await page.locator('#annual-days [data-date="2024-10-19"]').hover();
     await page.locator('#annual-days [tabindex="0"]').focus();
     await page.keyboard.press('Home');
     await expect(page.locator('#annual-days [data-date="2024-01-01"]')).toBeFocused();
@@ -112,13 +114,18 @@ test('keyboard navigation and a horizontally scrolling mobile calendar keep ever
     await expect(page.locator('#annual-days [data-date="2024-01-09"]')).toBeFocused();
     await page.keyboard.press('End');
     await expect(page.locator('#annual-days [data-date="2024-12-31"]')).toBeFocused();
+    await expect(page.locator('#annual-tooltip strong')).toContainText('31 декабря 2024');
     await expect(page.locator('#annual-tooltip')).toContainText('60 Kč (2,4 €)');
+    await expect(page.locator('#annual-days [aria-describedby="annual-tooltip"]')).toHaveAttribute('data-date', '2024-12-31');
     expect(await page.locator('#annual-tooltip').evaluate(tooltip => {
       const box = tooltip.getBoundingClientRect();return box.left >= 8 && box.right <= innerWidth - 8 && box.top >= 8 && box.bottom <= innerHeight - 8;
     })).toBe(true);
     await expect(page.locator('#annual-days [tabindex="0"]')).toHaveCount(1);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     if (width <= 780) expect(await page.locator('#annual-scroll').evaluate(scroll => scroll.scrollWidth > scroll.clientWidth)).toBe(true);
+    await page.locator('#annual-days [data-date="2024-12-30"]').hover();
+    await expect(page.locator('#annual-tooltip strong')).toContainText('30 декабря 2024');
+    await expect(page.locator('#annual-days [data-date="2024-12-31"]')).toBeFocused();
     await page.keyboard.press('Escape');await expect(page.locator('#annual-tooltip')).toBeHidden();
   }
   await page.locator('#annual-panel').screenshot({path: 'test-results/annual-calendar-mobile.png'});
@@ -130,7 +137,7 @@ test('keyboard navigation and a horizontally scrolling mobile calendar keep ever
 test.describe('touch', () => {
   test.use({hasTouch: true, viewport: {width: 390, height: 844}});
   test('tapping a day opens its details and tapping outside dismisses them', async ({page}) => {
-    await mockAPIs(page);await page.goto('/stat-panel/insights');
+    await mockAPIs(page);await page.goto('/stat-panel/earnings');await openEarningsDetails(page);
     await expect(page.locator('#annual-report')).toBeVisible();
     await page.locator('#annual-days [data-date="2026-10-09"]').tap();
     await expect(page.locator('#annual-tooltip')).toContainText('105 Kč (4,2 €)');
@@ -141,7 +148,7 @@ test.describe('touch', () => {
 
 test('a late year response cannot replace the newer selection; errors keep the main report and can be retried', async ({page}) => {
   const {state, years} = await mockAPIs(page);
-  await page.goto('/stat-panel/insights');await expect(page.locator('#annual-report')).toBeVisible();
+  await page.goto('/stat-panel/earnings');await openEarningsDetails(page);await expect(page.locator('#annual-report')).toBeVisible();
   state.delayed = 2024;
   await page.locator('#annual-year').selectOption('2024');
   await expect.poll(() => years.includes(2024)).toBe(true);
@@ -169,7 +176,7 @@ test('a late year response cannot replace the newer selection; errors keep the m
 
 for (const [status, reason] of [[401, 'expired'], [403, 'denied']]) test(`an unauthorized calendar request (${status}) closes the whole private panel`, async ({page}) => {
   const {state} = await mockAPIs(page);
-  await page.goto('/stat-panel/insights');await expect(page.locator('#annual-report')).toBeVisible();
+  await page.goto('/stat-panel/earnings');await openEarningsDetails(page);await expect(page.locator('#annual-report')).toBeVisible();
   state.failure = status;
   await page.locator('#annual-year').selectOption('2025');
   await expect(page).toHaveURL(new RegExp('/panel-login/\\?reason=' + reason));

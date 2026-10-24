@@ -3,6 +3,8 @@ import {DEFAULT_CURRENCIES,NOTE_MAX_LENGTH,WEEKDAYS,weekdayIndex,today,duration,
 import {DateFilters} from './date-filter.js';
 import {loadEarningsEntries} from './report-loader.js';
 import {CurrencySummary} from './currency-summary.js';
+import {rankWeekdays} from './insights-model.js';
+import {EarningsCalendar} from './earnings-calendar.js';
 const $=id=>document.getElementById(id);
 const number=new Intl.NumberFormat('ru-RU',{maximumFractionDigits:2}),one=new Intl.NumberFormat('ru-RU',{maximumFractionDigits:1});
 const whole=new Intl.NumberFormat('ru-RU',{maximumFractionDigits:0});
@@ -13,16 +15,17 @@ const shortDate=d=>new Intl.DateTimeFormat('ru-RU',{day:'numeric',month:'short',
 let entries=[],spots=[],editing=null,entryId=null,snapshot=null,rateSerial=0,loadSerial=0,chartMode='sum',saving=false,dirty=false,deleteTarget=null;
 let editingSpotId=null,spotSaving=false;
 let noteTarget=null,noteSaving=false;
-let dateFilters,currencySummary;
+let dateFilters,currencySummary,annualCalendar;
+let reportSpot='',weekdaySpot='',calendarDirty=true;
 let loadRequest;
 let reportRange={from:today(),to:today()};
 function node(tag,text,className){const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(className)n.className=className;return n;}
 function errorAt(id,message){$(id).textContent=message;$(id).hidden=!message;}
 function closeEntryMenus(){document.querySelectorAll('.entry-menu:popover-open').forEach(menu=>menu.hidePopover());}
-function expire(){currencySummary?.reset();closeEntryMenus();$('app').hidden=true;for(const d of document.querySelectorAll('dialog[open]'))d.close();sessionEnded();}
+function expire(){annualCalendar?.destroy();loadRequest?.abort();currencySummary?.reset();closeEntryMenus();$('app').hidden=true;for(const d of document.querySelectorAll('dialog[open]'))d.close();sessionEnded();}
 async function api(path,options={}){
  const response=await accessFetch('/earnings-api'+path,{...options,cache:'no-store',headers:{'Content-Type':'application/json',...options.headers},signal:options.signal?AbortSignal.any([options.signal,AbortSignal.timeout(20000)]):AbortSignal.timeout(20000)});
- if(response.status===401){expire();throw new Error('Сессия истекла.');}
+ if(response.status===401||response.status===403){expire();throw new Error('Сессия истекла.');}
  let data;try{data=await response.json();}catch{throw new Error('Сервис заработков пока недоступен.');}
  if(!response.ok)throw new Error(data.error||'Не удалось выполнить запрос.');return data;
 }
@@ -96,10 +99,57 @@ async function load(){
  try{
   const selection={...dateFilters.selection(),spot:$('filter-spot').value};
   const [list,locations]=await Promise.all([loadEarningsEntries(selection,(query,signal)=>api('/entries?'+new URLSearchParams(query),{signal}),request.signal),api('/spots',{signal:request.signal})]);
-  if(serial!==loadSerial)return;entries=list.entries;spots=locations.spots;reportRange={from:selection.from,to:selection.to};populateSpots();render();errorAt('message','');$('report').hidden=false;
+  if(serial!==loadSerial)return;
+    const spotIds = new Set();
+    if (!Array.isArray(locations.spots) || locations.spots.some(spot => {
+      if (!spot || typeof spot.id !== 'string' || !/^[\w-]{1,64}$/.test(spot.id) || spotIds.has(spot.id)
+          || typeof spot.name !== 'string' || !spot.name.trim() || spot.name.length > 80) return true;
+      spotIds.add(spot.id);
+      return false;
+    })) throw new Error('Не удалось прочитать точки выступлений.');
+    if(list.entries.some(entry=>!spotIds.has(entry.spotId)))throw new Error('Точка выступления не найдена. Обнови отчёт.');
+  entries=list.entries;spots=locations.spots;reportRange={from:selection.from,to:selection.to};reportSpot=selection.spot;populateSpots();render();errorAt('message','');$('report').hidden=false;
+  renderDetails();
  }catch(error){if(serial===loadSerial){errorAt('message',error.message);$('message').classList.add('error');}}
  finally{if(serial===loadSerial)$('show').disabled=false;}
 }
+function populateWeekdaySpots() {
+ const select=$('weekday-spot');
+ weekdaySpot=spots.some(spot=>spot.id===weekdaySpot)?weekdaySpot:spots[0]?.id||'';
+ const fixed=spots.find(spot=>spot.id===reportSpot),canChoose=!fixed&&spots.length>1;
+ select.replaceChildren(...spots.map(spot=>new Option(spot.name,spot.id)));
+ select.value=fixed?.id||weekdaySpot;
+ select.disabled=!canChoose;
+ $('weekday-spot-picker').hidden=!canChoose;
+ $('weekday-only-spot').hidden=canChoose;
+ $('weekday-only-spot').textContent=fixed?.name||spots[0]?.name||'Пока нет точек';
+}
+
+function drawWeekdays() {
+  const days = rankWeekdays(entries, $('weekday-spot').value);
+  const peak = Math.max(1, ...days.map(day => day.hourCzk));
+  const rows = days.map(day => {
+    const row = node('li'), name = node('span', day.name), value = node('strong', one.format(day.hourCzk) + ' Kč/ч');
+    row.dataset.weekday = String(day.weekday);
+    name.className = 'weekday-name';
+    value.className = 'weekday-rate';
+    const bar = node('progress');
+    bar.max = peak;
+    bar.value = day.hourCzk;
+    bar.setAttribute('aria-hidden', 'true');
+    const track = node('div'), count = node('span', String(day.count));
+    track.className = 'weekday-track';
+    count.className = 'weekday-count';
+    count.setAttribute('aria-label', `Выступлений: ${day.count}`);
+    count.title = `Выступлений: ${day.count}`;
+    track.append(count, bar);
+    row.append(name, value, track);
+    return row;
+  });
+  $('weekday-ranking').replaceChildren(...rows);
+  $('weekday-empty').hidden = days.some(day => day.count);
+}
+
 function render(){
  closeEntryMenus();
  const s=summary(entries);$('total-czk').textContent=money(s.czkMinor);$('total-eur').textContent=`(${money(s.eurMinor,'€')})`;
@@ -141,8 +191,8 @@ function render(){
   trigger.addEventListener('click',event=>{event.preventDefault();if(menu.matches(':popover-open'))menu.hidePopover();else{menu.showPopover({source:trigger});positionEntryMenu(trigger,menu);edit.focus({preventScroll:true});}});
   menu.append(edit,remove);controls.append(trigger,menu);actions.append(controls);tr.append(actions);body.append(tr);
  }
- renderCharts();
- currencySummary.update(entries);
+ populateWeekdaySpots();drawWeekdays();
+ renderDetails();
 }
 function positionEntryMenu(trigger,menu){
  const anchor=trigger.getBoundingClientRect(),box=menu.getBoundingClientRect(),edge=8,gap=6;
@@ -164,6 +214,7 @@ function chartScale(values){
  return {max,ticks:Array.from({length:intervals+1},(_,i)=>Number((i*step).toPrecision(12)))};
 }
 function renderCharts(){
+ if(!$('earnings-details').open)return;
  const host=$('daily-chart');host.replaceChildren();const groups=new Map();
  entries.forEach(e=>groups.set(e.date,[...(groups.get(e.date)||[]),e]));
  const data=[...groups].sort(([a],[b])=>a.localeCompare(b)).map(([date,items])=>({date,...summary(items),spotNames:[...new Set(items.map(e=>spots.find(s=>s.id===e.spotId)?.name).filter(Boolean))]}));
@@ -272,7 +323,7 @@ $('entry-form').addEventListener('submit',async event=>{
    let from=input.date<$('from').value?input.date:$('from').value,to=input.date>$('to').value?input.date:$('to').value;
    dateFilters.setRange(from,to);
   }
-  if($('filter-spot').value&&$('filter-spot').value!==input.spotId)$('filter-spot').value='';await load();
+  if($('filter-spot').value&&$('filter-spot').value!==input.spotId)$('filter-spot').value='';await load();refreshCalendar();
  }catch(error){errorAt('form-error',error.message);}finally{saving=false;$('save-entry').disabled=false;}
 });
 $('open-spots').addEventListener('click',event=>{
@@ -305,13 +356,33 @@ $('spot-form').addEventListener('submit',async event=>{
   if(index<0)spots.push(spot);else spots[index]=spot;
   populateSpots();render();
   if(!id){$('entry-spot').value=spot.id;dirty=true;}
-  syncSpotPicker();updateEstimate();$('spot-dialog').close();
+  syncSpotPicker();updateEstimate();$('spot-dialog').close();if(id)refreshCalendar();
  }catch(error){errorAt('spot-error',error.message);}
  finally{spotSaving=false;for(const control of ['save-spot','cancel-spot','spot-name'])$(control).disabled=false;}
 });
 $('cancel-delete').addEventListener('click',()=>$('delete-dialog').close());
-$('confirm-delete').addEventListener('click',async()=>{$('confirm-delete').disabled=true;try{await api(`/entries/${deleteTarget.id}`,{method:'DELETE',body:JSON.stringify({version:deleteTarget.version})});$('delete-dialog').close();await load();}catch(error){errorAt('delete-error',error.message);}finally{$('confirm-delete').disabled=false;}});
+$('confirm-delete').addEventListener('click',async()=>{$('confirm-delete').disabled=true;try{await api(`/entries/${deleteTarget.id}`,{method:'DELETE',body:JSON.stringify({version:deleteTarget.version})});$('delete-dialog').close();await load();refreshCalendar();}catch(error){errorAt('delete-error',error.message);}finally{$('confirm-delete').disabled=false;}});
 document.querySelectorAll('[data-chart]').forEach(b=>b.addEventListener('click',()=>{chartMode=b.dataset.chart;document.querySelectorAll('[data-chart]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));renderCharts();}));
+function ensureCalendar(){
+ if(!annualCalendar){
+  calendarDirty=false;
+  annualCalendar=new EarningsCalendar({read:(year,signal)=>api('/calendar?'+new URLSearchParams({year}),{signal})});
+ }else if(calendarDirty){calendarDirty=false;void annualCalendar.load();}
+}
+function renderDetails(){
+ if($('app').hidden||$('report').hidden||!$('earnings-details').open)return;
+ renderCharts();currencySummary.update(entries);ensureCalendar();
+}
+function refreshCalendar(){
+ calendarDirty=true;
+ if(!$('app').hidden&&!$('report').hidden&&$('earnings-details').open)ensureCalendar();
+}
+$('earnings-details').addEventListener('toggle',()=>{
+ const open=$('earnings-details').open;
+ $('earnings-details-label').textContent=open?'Скрыть подробную статистику':'Показать подробную статистику';
+ if(open)renderDetails();else{annualCalendar?.hideTooltip();currencySummary?.reset();}
+});
+$('weekday-spot').addEventListener('change',()=>{weekdaySpot=$('weekday-spot').value;drawWeekdays();});
 $('logout').addEventListener('click',logout);
 window.addEventListener('resize',closeEntryMenus);document.addEventListener('scroll',repositionEntryMenus,true);
 window.addEventListener('resize',()=>{if($('spot-picker-menu').matches(':popover-open'))positionSpotPicker();});
